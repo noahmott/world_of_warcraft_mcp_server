@@ -112,6 +112,9 @@ def with_supabase_logging(func):
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
+        logger.info(f"=== with_supabase_logging wrapper called for {func.__name__} ===")
+        logger.info(f"Args: {args}, Kwargs keys: {list(kwargs.keys())}")
+
         start_time = datetime.now(timezone.utc)
         tool_name = func.__name__
 
