@@ -21,11 +21,16 @@ class DiscordTokenVerifier(TokenVerifier):
     /users/@me endpoint with the token. If it works, the token is valid.
     """
 
-    def __init__(self):
-        """Initialize the Discord token verifier"""
+    def __init__(self, client_id: str):
+        """Initialize the Discord token verifier
+
+        Args:
+            client_id: The Discord application client ID
+        """
         self.discord_api_base = "https://discord.com/api/v10"
         self.user_info_endpoint = f"{self.discord_api_base}/users/@me"
         self.required_scopes = ["identify", "email"]  # Discord OAuth scopes
+        self.client_id = client_id
 
     async def verify_token(self, token: str) -> Optional[AccessToken]:
         """
@@ -63,6 +68,7 @@ class DiscordTokenVerifier(TokenVerifier):
                     # Return AccessToken with user claims
                     return AccessToken(
                         token=token,
+                        client_id=self.client_id,
                         user_id=user_id,
                         scopes=["identify", "email"],  # Discord OAuth scopes
                         claims={

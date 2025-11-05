@@ -53,8 +53,8 @@ def create_discord_auth() -> OAuthProxy:
 
     logger.info("Configuring Discord OAuth authentication")
 
-    # Create Discord token verifier
-    token_verifier = DiscordTokenVerifier()
+    # Create Discord token verifier with client_id
+    token_verifier = DiscordTokenVerifier(client_id=settings.discord_client_id)
 
     return OAuthProxy(
         upstream_authorization_endpoint="https://discord.com/api/oauth2/authorize",
