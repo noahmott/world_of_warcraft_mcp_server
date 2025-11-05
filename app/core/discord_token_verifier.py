@@ -25,6 +25,7 @@ class DiscordTokenVerifier(TokenVerifier):
         """Initialize the Discord token verifier"""
         self.discord_api_base = "https://discord.com/api/v10"
         self.user_info_endpoint = f"{self.discord_api_base}/users/@me"
+        self.required_scopes = ["identify", "email"]  # Discord OAuth scopes
 
     async def verify_token(self, token: str) -> Optional[AccessToken]:
         """
