@@ -66,12 +66,14 @@ class SupabaseRealTimeClient:
     async def initialize(self) -> None:
         """Initialize the Supabase client"""
         try:
+            # For service role key, don't persist sessions or refresh tokens
+            # These options are for user auth and will override the service role key
             self.client = await acreate_client(
-                self.url, 
+                self.url,
                 self.key,
                 options=ClientOptions(
-                    auto_refresh_token=True,
-                    persist_session=True
+                    auto_refresh_token=False,
+                    persist_session=False
                 )
             )
             logger.info("Supabase client initialized successfully")
