@@ -1069,7 +1069,8 @@ async def get_character_details(
     realm: str,
     character_name: str,
     sections: List[str] = ["profile", "equipment", "specializations"],
-    game_version: str = "retail"
+    game_version: str = "retail",
+    ctx: Any = None
 ) -> Dict[str, Any]:
     """
     Get comprehensive character details including gear, specializations, and other information
