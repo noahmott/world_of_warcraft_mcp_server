@@ -46,8 +46,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create FastMCP server with proper configuration
-mcp = FastMCP("WoW Guild Analytics MCP")
+# Initialize OAuth authentication (if configured)
+from .core.auth import create_oauth_provider, get_auth_info
+
+auth_provider = create_oauth_provider()
+auth_info = get_auth_info()
+
+if auth_info['enabled']:
+    logger.info(f"OAuth authentication enabled with provider: {auth_info['provider']}")
+    logger.info(f"OAuth base URL: {auth_info['base_url']}")
+    logger.info(f"OAuth scopes: {', '.join(auth_info['scopes'])}")
+else:
+    logger.info("OAuth authentication is disabled - server running in public mode")
+
+# Create FastMCP server with OAuth authentication (if enabled)
+mcp = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
 
 # Initialize service instances
 chart_generator = ChartGenerator()
@@ -91,30 +104,63 @@ async def get_connected_realm_id(realm: str, game_version: str = "retail", clien
     logger.error(f"Could not find connected realm ID for {realm} ({game_version})")
     return None
 
-# Decorator for automatic Supabase logging
+# Decorator for automatic Supabase logging with OAuth user tracking
 def with_supabase_logging(func):
-    """Decorator to automatically log tool calls to Supabase"""
+    """Decorator to automatically log tool calls to Supabase with user tracking"""
     import functools
-    
+    import inspect
+
     @functools.wraps(func)
     async def wrapper(**kwargs):
         start_time = datetime.now(timezone.utc)
         tool_name = func.__name__
-        
+
+        # Extract Context if present in kwargs (FastMCP injects it)
+        context = kwargs.get('ctx')
+        user_info = None
+        oauth_provider = None
+        oauth_user_id = None
+
+        # Extract OAuth user information from FastMCP Context
+        if context and hasattr(context, 'auth'):
+            try:
+                auth_info = context.auth
+                if auth_info:
+                    # FastMCP auth context contains user information from OAuth token
+                    user_info = getattr(auth_info, 'user', None)
+                    if user_info:
+                        # Extract provider and user ID
+                        # Discord user structure: {id, username, email, ...}
+                        # Google user structure: {sub, email, name, ...}
+                        oauth_user_id = user_info.get('id') or user_info.get('sub')
+
+                        # Determine provider from token claims or domain
+                        if 'discord.com' in str(auth_info):
+                            oauth_provider = 'discord'
+                        elif 'google' in str(auth_info) or 'googleapis.com' in str(auth_info):
+                            oauth_provider = 'google'
+
+                        logger.debug(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+            except Exception as e:
+                logger.debug(f"Failed to extract user context: {e}")
+
         # Try to initialize services and log, but don't let it break the tool
         try:
             await get_or_initialize_services()
             await log_to_supabase(
                 tool_name=tool_name,
-                request_data=kwargs
+                request_data=kwargs,
+                oauth_provider=oauth_provider,
+                oauth_user_id=oauth_user_id,
+                user_info=user_info
             )
         except Exception as e:
             logger.debug(f"Failed to initialize services or log request for {tool_name}: {e}")
-        
+
         try:
             # Call the actual function
             result = await func(**kwargs)
-            
+
             # Try to log successful response
             try:
                 duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
@@ -122,25 +168,31 @@ def with_supabase_logging(func):
                     tool_name=tool_name,
                     request_data=kwargs,
                     response_data={"success": True},
-                    duration_ms=duration_ms
+                    duration_ms=duration_ms,
+                    oauth_provider=oauth_provider,
+                    oauth_user_id=oauth_user_id,
+                    user_info=user_info
                 )
             except Exception as e:
                 logger.debug(f"Failed to log success for {tool_name}: {e}")
-            
+
             return result
-            
+
         except Exception as e:
             # Try to log error but don't let logging break error handling
             try:
                 await log_to_supabase(
                     tool_name=tool_name,
                     request_data=kwargs,
-                    error_message=str(e)
+                    error_message=str(e),
+                    oauth_provider=oauth_provider,
+                    oauth_user_id=oauth_user_id,
+                    user_info=user_info
                 )
             except Exception as log_error:
                 logger.debug(f"Failed to log error for {tool_name}: {log_error}")
             raise
-    
+
     return wrapper
 
 # ============================================================================
@@ -2050,23 +2102,56 @@ async def test_supabase_connection() -> Dict[str, Any]:
         }
 
 
-async def log_to_supabase(tool_name: str, request_data: Dict[str, Any], 
-                         response_data: Dict[str, Any] = None, 
+async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
+                         response_data: Dict[str, Any] = None,
                          error_message: str = None,
-                         duration_ms: float = None):
-    """Log activity directly to Supabase"""
+                         duration_ms: float = None,
+                         oauth_provider: str = None,
+                         oauth_user_id: str = None,
+                         user_info: Dict[str, Any] = None):
+    """Log activity directly to Supabase with user tracking"""
     global supabase_client
-    
+
     try:
         # Initialize services if needed (consolidates all initialization)
         await get_or_initialize_services()
-        
+
         # Skip if Supabase is not available
         if not supabase_client:
             logger.debug("Supabase client not available - skipping log")
             return
-        
-        # Create activity log entry
+
+        # Track user if OAuth info is available
+        user_id = None
+        session_id_ref = None
+
+        if oauth_provider and oauth_user_id and user_info:
+            try:
+                # Upsert user in database
+                user_data = {
+                    "email": user_info.get('email'),
+                    "username": user_info.get('username') or user_info.get('name'),
+                    "display_name": user_info.get('global_name') or user_info.get('display_name') or user_info.get('name'),
+                    "avatar_url": user_info.get('avatar')
+                }
+
+                user_id = await supabase_client.upsert_user(
+                    oauth_provider=oauth_provider,
+                    oauth_user_id=oauth_user_id,
+                    user_data=user_data
+                )
+
+                if user_id:
+                    logger.debug(f"Tracked user {user_id} ({oauth_provider}/{oauth_user_id})")
+
+                    # TODO: Create/track session (requires more context about client type)
+                    # For now, we just track the user and log the OAuth info
+
+            except Exception as e:
+                logger.error(f"Failed to track user: {e}")
+                # Continue with logging even if user tracking fails
+
+        # Create activity log entry with user tracking
         log_entry = ActivityLogEntry(
             id=str(uuid.uuid4()),
             session_id="fastmcp-direct",
@@ -2077,19 +2162,24 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
             response_data=response_data,
             error_message=error_message,
             duration_ms=duration_ms,
+            user_id=user_id,
+            session_id_ref=session_id_ref,
+            oauth_provider=oauth_provider,
+            oauth_user_id=oauth_user_id,
             metadata={
                 "source": "fastmcp",
-                "direct_logging": True
+                "direct_logging": True,
+                "authenticated": user_id is not None
             }
         )
-        
+
         # Stream to Supabase
         success = await supabase_client.stream_activity_log(log_entry)
         if success:
-            logger.debug(f"Successfully logged {tool_name} to Supabase")
+            logger.debug(f"Successfully logged {tool_name} to Supabase with user tracking")
         else:
             logger.warning(f"Failed to log {tool_name} to Supabase - no error thrown")
-        
+
     except Exception as e:
         logger.error(f"Failed to log to Supabase: {e}")
         # Don't re-raise - logging failure shouldn't break the main functionality

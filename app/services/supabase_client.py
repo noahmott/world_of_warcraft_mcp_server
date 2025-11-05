@@ -32,6 +32,11 @@ class ActivityLogEntry:
     duration_ms: Optional[float] = None
     reasoning: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    # OAuth user tracking fields
+    user_id: Optional[str] = None
+    session_id_ref: Optional[str] = None
+    oauth_provider: Optional[str] = None
+    oauth_user_id: Optional[str] = None
 
 
 # Removed GuildDataEntry - keeping guild data in Redis for performance
@@ -97,7 +102,119 @@ class SupabaseRealTimeClient:
             return False
     
     # Removed stream_guild_data - keeping guild data in Redis for performance
-    
+
+    async def upsert_user(self, oauth_provider: str, oauth_user_id: str,
+                         user_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Create or update user in Supabase users table
+
+        Args:
+            oauth_provider: OAuth provider name ('discord' or 'google')
+            oauth_user_id: User ID from OAuth provider
+            user_data: Dict with optional keys: email, username, display_name, avatar_url
+
+        Returns:
+            User UUID from database, or None if failed
+        """
+        try:
+            if not self.client:
+                await self.initialize()
+
+            # Check if user exists
+            existing = await self.client.table("users").select("id").eq(
+                "oauth_provider", oauth_provider
+            ).eq("oauth_user_id", oauth_user_id).execute()
+
+            if existing.data:
+                # User exists, update their info and last_seen_at
+                user_id = existing.data[0]['id']
+                update_data = {
+                    "last_seen_at": datetime.now(timezone.utc).isoformat(),
+                    **{k: v for k, v in user_data.items() if v is not None}
+                }
+
+                await self.client.table("users").update(update_data).eq("id", user_id).execute()
+                logger.debug(f"Updated existing user {user_id}")
+                return user_id
+            else:
+                # Create new user
+                insert_data = {
+                    "oauth_provider": oauth_provider,
+                    "oauth_user_id": oauth_user_id,
+                    **user_data
+                }
+
+                result = await self.client.table("users").insert(insert_data).execute()
+                if result.data:
+                    user_id = result.data[0]['id']
+                    logger.info(f"Created new user {user_id} from {oauth_provider}")
+                    return user_id
+                else:
+                    logger.error(f"Failed to create user: {result}")
+                    return None
+
+        except Exception as e:
+            logger.error(f"Error upserting user: {e}")
+            return None
+
+    async def create_user_session(self, user_id: str, session_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Create a new user session
+
+        Args:
+            user_id: User UUID from users table
+            session_data: Dict with optional keys: client_type, client_version, ip_address, user_agent
+
+        Returns:
+            Session UUID from database, or None if failed
+        """
+        try:
+            if not self.client:
+                await self.initialize()
+
+            insert_data = {
+                "user_id": user_id,
+                "is_active": True,
+                **session_data
+            }
+
+            result = await self.client.table("user_sessions").insert(insert_data).execute()
+            if result.data:
+                session_id = result.data[0]['id']
+                logger.info(f"Created new session {session_id} for user {user_id}")
+
+                # Increment user's total_sessions count
+                await self.client.table("users").update({
+                    "total_sessions": self.client.table("users").select("total_sessions").eq("id", user_id)
+                }).eq("id", user_id).execute()
+
+                return session_id
+            else:
+                logger.error(f"Failed to create session: {result}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error creating user session: {e}")
+            return None
+
+    async def end_user_session(self, session_id: str) -> bool:
+        """Mark a user session as ended"""
+        try:
+            if not self.client:
+                await self.initialize()
+
+            await self.client.table("user_sessions").update({
+                "is_active": False,
+                "session_end": datetime.now(timezone.utc).isoformat()
+            }).eq("id", session_id).execute()
+
+            logger.info(f"Ended session {session_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error ending session: {e}")
+            return False
+
     async def create_activity_channel(self) -> None:
         """Create real-time channel for activity logs"""
         try:

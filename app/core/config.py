@@ -44,11 +44,23 @@ class Settings(BaseSettings):
     api_timeout_connect: int = Field(10, env="API_TIMEOUT_CONNECT")
     api_timeout_read: int = Field(60, env="API_TIMEOUT_READ")
     
+    # OAuth Authentication Settings
+    oauth_provider: Optional[str] = Field(None, env="OAUTH_PROVIDER")
+    oauth_base_url: str = Field("http://localhost:8000", env="OAUTH_BASE_URL")
+
+    # Discord OAuth
+    discord_client_id: Optional[str] = Field(None, env="DISCORD_CLIENT_ID")
+    discord_client_secret: Optional[str] = Field(None, env="DISCORD_CLIENT_SECRET")
+
+    # Google OAuth
+    google_client_id: Optional[str] = Field(None, env="GOOGLE_CLIENT_ID")
+    google_client_secret: Optional[str] = Field(None, env="GOOGLE_CLIENT_SECRET")
+
     # Feature Flags
     enable_redis_caching: bool = Field(True, env="ENABLE_REDIS_CACHING")
     enable_supabase_logging: bool = Field(True, env="ENABLE_SUPABASE_LOGGING")
     enable_ai_analysis: bool = Field(True, env="ENABLE_AI_ANALYSIS")
-    
+
     class Config:
         env_file = ".env"
         case_sensitive = False
