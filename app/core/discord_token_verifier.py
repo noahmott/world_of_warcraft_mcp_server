@@ -92,17 +92,24 @@ class DiscordTokenVerifier(TokenVerifier):
                             if db_user_id:
                                 logger.info(f"Tracked user in Supabase: {db_user_id}")
 
-                                # Create a session for this user
-                                session_data = {
-                                    "client_type": "mcp_client",
-                                    "metadata": {
-                                        "discord_username": username,
-                                        "discord_id": user_id
+                                # Check if user already has an active session
+                                # Only create a new session if they don't have one yet
+                                existing_sessions = await _supabase_client.client.table("user_sessions").select("id").eq("user_id", db_user_id).eq("is_active", True).execute()
+
+                                if not existing_sessions.data:
+                                    # Create a session for this user
+                                    session_data = {
+                                        "client_type": "mcp_client",
+                                        "metadata": {
+                                            "discord_username": username,
+                                            "discord_id": user_id
+                                        }
                                     }
-                                }
-                                session_id = await _supabase_client.create_user_session(db_user_id, session_data)
-                                if session_id:
-                                    logger.info(f"Created session in Supabase: {session_id}")
+                                    session_id = await _supabase_client.create_user_session(db_user_id, session_data)
+                                    if session_id:
+                                        logger.info(f"Created new session in Supabase: {session_id}")
+                                else:
+                                    logger.debug(f"User {db_user_id} already has {len(existing_sessions.data)} active session(s), not creating a new one")
                         except Exception as e:
                             logger.error(f"Failed to track user in Supabase: {e}")
                     else:
