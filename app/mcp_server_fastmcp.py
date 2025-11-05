@@ -22,6 +22,7 @@ from typing import Dict, Any, List, Optional
 import redis.asyncio as aioredis
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from fastmcp.server.dependencies import get_access_token
 
 # Local imports
 from .api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
@@ -118,47 +119,39 @@ def with_supabase_logging(func):
         start_time = datetime.now(timezone.utc)
         tool_name = func.__name__
 
-        # Extract Context if present in kwargs (FastMCP injects it)
-        context = kwargs.get('ctx')
+        # Extract OAuth user information using FastMCP's get_access_token()
         user_info = None
         oauth_provider = None
         oauth_user_id = None
 
-        # Extract OAuth user information from FastMCP Context
-        logger.debug(f"Context available: {context is not None}, has auth: {hasattr(context, 'auth') if context else False}")
+        try:
+            # Get the access token from FastMCP
+            access_token = get_access_token()
+            logger.info(f"Access token available: {access_token is not None}")
 
-        if context and hasattr(context, 'auth'):
-            try:
-                auth_info = context.auth
-                logger.debug(f"Auth info type: {type(auth_info)}, value: {auth_info}")
+            if access_token and access_token.claims:
+                user_info = access_token.claims
+                logger.info(f"Claims found: {list(user_info.keys())}")
 
-                if auth_info:
-                    # FastMCP auth is an AccessToken with claims
-                    # Try to get claims from the AccessToken
-                    claims = getattr(auth_info, 'claims', None)
-                    logger.debug(f"Claims found: {claims is not None}")
+                # Extract provider and user ID from claims
+                # Discord user structure: {id, username, email, ...}
+                # Google user structure: {sub, email, name, ...}
+                oauth_user_id = user_info.get('id') or user_info.get('sub')
 
-                    if claims:
-                        user_info = claims
-                        # Extract provider and user ID from claims
-                        # Discord user structure: {id, username, email, ...}
-                        # Google user structure: {sub, email, name, ...}
-                        oauth_user_id = user_info.get('id') or user_info.get('sub')
+                # Determine provider from issuer or audience in claims
+                issuer = user_info.get('iss', '')
+                audience = user_info.get('aud', '')
 
-                        # Determine provider from issuer or audience in claims
-                        issuer = user_info.get('iss', '')
-                        audience = user_info.get('aud', '')
+                if 'discord' in issuer or 'discord' in audience:
+                    oauth_provider = 'discord'
+                elif 'google' in issuer or 'google' in audience:
+                    oauth_provider = 'google'
 
-                        if 'discord' in issuer or 'discord' in audience:
-                            oauth_provider = 'discord'
-                        elif 'google' in issuer or 'google' in audience:
-                            oauth_provider = 'google'
-
-                        logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
-                    else:
-                        logger.warning(f"No claims found in auth context, auth_info attributes: {dir(auth_info)}")
-            except Exception as e:
-                logger.warning(f"Failed to extract user context: {e}", exc_info=True)
+                logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+            else:
+                logger.info("No access token or claims available")
+        except Exception as e:
+            logger.warning(f"Failed to extract user context: {e}", exc_info=True)
 
         # Try to initialize services and log, but don't let it break the tool
         try:
