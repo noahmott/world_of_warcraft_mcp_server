@@ -2049,8 +2049,11 @@ async def get_or_initialize_services():
         
         # Initialize Supabase (both direct client and streaming service)
         supabase_url = os.getenv("SUPABASE_URL")
-        # Use SERVICE role key for server-side operations (bypasses RLS)
-        supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
+        # ONLY use SERVICE role key for server-side operations (bypasses RLS)
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+
+        if not supabase_key:
+            raise ValueError("SUPABASE_SERVICE_KEY environment variable is required")
 
         if supabase_url and supabase_key:
             try:
