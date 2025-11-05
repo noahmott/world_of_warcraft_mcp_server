@@ -2049,7 +2049,12 @@ async def get_or_initialize_services():
                     supabase_client = SupabaseRealTimeClient(supabase_url, supabase_key)
                     await supabase_client.initialize()
                     logger.info("Supabase direct client initialized successfully")
-                
+
+                    # Set Supabase client for OAuth token verifier
+                    from .core.discord_token_verifier import set_supabase_client
+                    set_supabase_client(supabase_client)
+                    logger.info("Supabase client set for OAuth user tracking")
+
                 # Initialize streaming service
                 streaming_service = await initialize_streaming_service(redis_client)
                 logger.info("Supabase streaming service initialized successfully")

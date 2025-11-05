@@ -9,8 +9,17 @@ import logging
 from typing import Optional, Dict, Any
 import httpx
 from mcp.server.auth.provider import TokenVerifier, AccessToken
+import asyncio
 
 logger = logging.getLogger(__name__)
+
+# Global reference to supabase client (will be set from main server)
+_supabase_client = None
+
+def set_supabase_client(client):
+    """Set the global Supabase client for user tracking"""
+    global _supabase_client
+    _supabase_client = client
 
 
 class DiscordTokenVerifier(TokenVerifier):
@@ -64,6 +73,25 @@ class DiscordTokenVerifier(TokenVerifier):
                     username = user_data.get("username")
 
                     logger.info(f"Successfully verified Discord token for user {username} (ID: {user_id})")
+
+                    # Track user in Supabase if client is available
+                    if _supabase_client:
+                        try:
+                            user_tracking_data = {
+                                "email": email,
+                                "username": username,
+                                "display_name": user_data.get("global_name") or username,
+                                "avatar_url": f"https://cdn.discordapp.com/avatars/{user_id}/{user_data.get('avatar')}.png" if user_data.get('avatar') else None
+                            }
+                            db_user_id = await _supabase_client.upsert_user(
+                                oauth_provider="discord",
+                                oauth_user_id=user_id,
+                                user_data=user_tracking_data
+                            )
+                            if db_user_id:
+                                logger.info(f"Tracked user in Supabase: {db_user_id}")
+                        except Exception as e:
+                            logger.error(f"Failed to track user in Supabase: {e}")
 
                     # Return AccessToken with user claims
                     return AccessToken(
