@@ -11,6 +11,7 @@ A comprehensive World of Warcraft guild analytics MCP server that provides:
 
 # Standard library imports
 import asyncio
+import httpx
 import json
 import logging
 import os
@@ -134,35 +135,34 @@ def with_supabase_logging(func):
                 token = auth_header[7:]  # Remove "Bearer " prefix
                 logger.info("Found Bearer token in Authorization header")
 
-                # Create Discord token verifier to get user info
-                from .core.discord_token_verifier import DiscordTokenVerifier
-                discord_client_id = os.getenv("DISCORD_CLIENT_ID")
-                if discord_client_id:
-                    verifier = DiscordTokenVerifier(discord_client_id)
-                    access_token = await verifier.verify_token(token)
-                    if access_token and access_token.claims:
-                        user_info = access_token.claims
-                        oauth_user_id = user_info.get('id') or user_info.get('sub')
+                # Call Discord API directly to get user info
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(
+                            "https://discord.com/api/v10/users/@me",
+                            headers={"Authorization": f"Bearer {token}"},
+                            timeout=10.0
+                        )
+                        if response.status_code == 200:
+                            user_data = response.json()
+                            oauth_user_id = user_data.get("id")
+                            oauth_provider = "discord"
+                            user_info = user_data
 
-                        # Determine provider from issuer
-                        issuer = user_info.get('iss', '')
-                        if 'discord' in issuer:
-                            oauth_provider = 'discord'
-                        elif 'google' in issuer:
-                            oauth_provider = 'google'
+                            logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
 
-                        logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
-
-                        # Look up the db user_id from Supabase
-                        await get_or_initialize_services()
-                        if supabase_client:
-                            try:
-                                result = await supabase_client.client.table("users").select("id").eq("oauth_provider", oauth_provider).eq("oauth_user_id", oauth_user_id).execute()
-                                if result.data and len(result.data) > 0:
-                                    db_user_id = result.data[0]['id']
-                                    logger.info(f"Found db user_id: {db_user_id}")
-                            except Exception as e:
-                                logger.warning(f"Failed to lookup user in database: {e}")
+                            # Look up the db user_id from Supabase
+                            await get_or_initialize_services()
+                            if supabase_client:
+                                try:
+                                    result = await supabase_client.client.table("users").select("id").eq("oauth_provider", oauth_provider).eq("oauth_user_id", oauth_user_id).execute()
+                                    if result.data and len(result.data) > 0:
+                                        db_user_id = result.data[0]['id']
+                                        logger.info(f"Found db user_id: {db_user_id}")
+                                except Exception as e:
+                                    logger.warning(f"Failed to lookup user in database: {e}")
+                except Exception as e:
+                    logger.warning(f"Failed to verify token with Discord API: {e}")
             else:
                 logger.info("No Bearer token found in headers")
         except Exception as e:
