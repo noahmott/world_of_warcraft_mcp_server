@@ -57,8 +57,7 @@ def create_discord_auth() -> OAuthProxy:
         upstream_token_endpoint="https://discord.com/api/oauth2/token",
         upstream_client_id=settings.discord_client_id,
         upstream_client_secret=settings.discord_client_secret,
-        base_url=settings.oauth_base_url,
-        scopes=["identify", "email"]
+        base_url=settings.oauth_base_url
     )
 
 
@@ -95,8 +94,7 @@ def create_google_auth() -> OAuthProxy:
         upstream_token_endpoint="https://oauth2.googleapis.com/token",
         upstream_client_id=settings.google_client_id,
         upstream_client_secret=settings.google_client_secret,
-        base_url=settings.oauth_base_url,
-        scopes=["openid", "email", "profile"]
+        base_url=settings.oauth_base_url
     )
 
 
