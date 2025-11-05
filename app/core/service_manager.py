@@ -85,12 +85,12 @@ class ServiceManager:
     async def _initialize_supabase(self):
         """Initialize Supabase services"""
         supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
-        
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+
         if not supabase_url or not supabase_key:
             logger.warning("Supabase environment variables not set - logging to Supabase disabled")
             return
-        
+
         try:
             # Initialize direct Supabase client
             self.supabase_client = SupabaseRealTimeClient(supabase_url, supabase_key)

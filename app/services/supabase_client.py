@@ -47,21 +47,16 @@ class SupabaseRealTimeClient:
     
     def __init__(self, url: str = None, key: str = None):
         self.url = url or os.getenv("SUPABASE_URL")
-        # Use service role key for server-side operations (bypasses RLS)
+        # ONLY use service role key for server-side operations (bypasses RLS)
         service_key = os.getenv("SUPABASE_SERVICE_KEY")
-        anon_key = os.getenv("SUPABASE_KEY")
-        self.key = key or service_key or anon_key
+        self.key = key or service_key
         self.client: Optional[AsyncClient] = None
         self.channels = {}
 
-        # Log which key type is being used (without exposing the actual key)
-        if service_key and self.key == service_key:
-            logger.info("Using Supabase service role key (bypasses RLS)")
-        else:
-            logger.info("Using Supabase anon key (RLS enforced)")
-
         if not self.url or not self.key:
-            raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables are required")
+            raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required")
+
+        logger.info("Using Supabase service role key (bypasses RLS)")
     
     async def initialize(self) -> None:
         """Initialize the Supabase client"""
@@ -295,10 +290,14 @@ _supabase_client: Optional[SupabaseRealTimeClient] = None
 
 
 async def get_supabase_client() -> SupabaseRealTimeClient:
-    """Get or create Supabase client instance"""
+    """Get or create Supabase client instance with service role key"""
     global _supabase_client
     if _supabase_client is None:
-        _supabase_client = SupabaseRealTimeClient()
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_SERVICE_KEY")
+        if not key:
+            raise ValueError("SUPABASE_SERVICE_KEY is required")
+        _supabase_client = SupabaseRealTimeClient(url, key)
         await _supabase_client.initialize()
         await _supabase_client.authenticate_service()
     return _supabase_client
