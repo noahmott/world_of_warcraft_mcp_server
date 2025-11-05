@@ -22,6 +22,7 @@ from typing import Optional
 from fastmcp.server.auth import OAuthProxy
 
 from .config import settings
+from .discord_token_verifier import DiscordTokenVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +53,16 @@ def create_discord_auth() -> OAuthProxy:
 
     logger.info("Configuring Discord OAuth authentication")
 
+    # Create Discord token verifier
+    token_verifier = DiscordTokenVerifier()
+
     return OAuthProxy(
         upstream_authorization_endpoint="https://discord.com/api/oauth2/authorize",
         upstream_token_endpoint="https://discord.com/api/oauth2/token",
         upstream_client_id=settings.discord_client_id,
         upstream_client_secret=settings.discord_client_secret,
-        base_url=settings.oauth_base_url
+        base_url=settings.oauth_base_url,
+        token_verifier=token_verifier
     )
 
 
