@@ -2228,10 +2228,16 @@ def main():
         logger.info("🔧 Tools: Guild analysis, visualization, and auction house")
         logger.info(f"📊 Registered tools: {len(mcp._tool_manager._tools)}")
         logger.info(f"🌐 HTTP Server: 0.0.0.0:{port}")
+
+        # Initialize services before starting server (needed for OAuth user tracking)
+        logger.info("🔧 Initializing services...")
+        import asyncio
+        asyncio.run(get_or_initialize_services())
+        logger.info("✅ Services initialized")
+
         logger.info("✅ Starting server...")
-        
+
         # Run server using FastMCP 2.0 HTTP transport
-        # Services will initialize on first tool call within FastMCP's event loop
         mcp.run(
             transport="http",
             host="0.0.0.0",
