@@ -2040,11 +2040,12 @@ async def get_or_initialize_services():
         
         # Initialize Supabase (both direct client and streaming service)
         supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
-        
+        # Use SERVICE role key for server-side operations (bypasses RLS)
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
+
         if supabase_url and supabase_key:
             try:
-                # Initialize direct Supabase client
+                # Initialize direct Supabase client with service role key
                 if not supabase_client:
                     supabase_client = SupabaseRealTimeClient(supabase_url, supabase_key)
                     await supabase_client.initialize()
