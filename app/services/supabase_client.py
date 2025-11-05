@@ -47,10 +47,11 @@ class SupabaseRealTimeClient:
     
     def __init__(self, url: str = None, key: str = None):
         self.url = url or os.getenv("SUPABASE_URL")
-        self.key = key or os.getenv("SUPABASE_KEY")
+        # Use service role key for server-side operations (bypasses RLS)
+        self.key = key or os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
         self.client: Optional[AsyncClient] = None
         self.channels = {}
-        
+
         if not self.url or not self.key:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables are required")
     
