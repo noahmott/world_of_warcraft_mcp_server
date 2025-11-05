@@ -111,7 +111,7 @@ def with_supabase_logging(func):
     import inspect
 
     @functools.wraps(func)
-    async def wrapper(**kwargs):
+    async def wrapper(*args, **kwargs):
         start_time = datetime.now(timezone.utc)
         tool_name = func.__name__
 
@@ -172,7 +172,7 @@ def with_supabase_logging(func):
 
         try:
             # Call the actual function
-            result = await func(**kwargs)
+            result = await func(*args, **kwargs)
 
             # Try to log successful response
             try:
