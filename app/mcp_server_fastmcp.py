@@ -134,10 +134,12 @@ def with_supabase_logging(func):
                 token = auth_header[7:]  # Remove "Bearer " prefix
                 logger.info("Found Bearer token in Authorization header")
 
-                # Use our Discord token verifier to get user info
-                from .core.discord_token_verifier import discord_verifier
-                if discord_verifier:
-                    access_token = await discord_verifier.verify_token(token)
+                # Create Discord token verifier to get user info
+                from .core.discord_token_verifier import DiscordTokenVerifier
+                discord_client_id = os.getenv("DISCORD_CLIENT_ID")
+                if discord_client_id:
+                    verifier = DiscordTokenVerifier(discord_client_id)
+                    access_token = await verifier.verify_token(token)
                     if access_token and access_token.claims:
                         user_info = access_token.claims
                         oauth_user_id = user_info.get('id') or user_info.get('sub')
