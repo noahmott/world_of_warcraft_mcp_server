@@ -122,13 +122,19 @@ def with_supabase_logging(func):
         oauth_user_id = None
 
         # Extract OAuth user information from FastMCP Context
+        logger.debug(f"Context available: {context is not None}, has auth: {hasattr(context, 'auth') if context else False}")
+
         if context and hasattr(context, 'auth'):
             try:
                 auth_info = context.auth
+                logger.debug(f"Auth info type: {type(auth_info)}, value: {auth_info}")
+
                 if auth_info:
                     # FastMCP auth is an AccessToken with claims
                     # Try to get claims from the AccessToken
                     claims = getattr(auth_info, 'claims', None)
+                    logger.debug(f"Claims found: {claims is not None}")
+
                     if claims:
                         user_info = claims
                         # Extract provider and user ID from claims
@@ -147,7 +153,7 @@ def with_supabase_logging(func):
 
                         logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
                     else:
-                        logger.debug(f"No claims found in auth context")
+                        logger.warning(f"No claims found in auth context, auth_info attributes: {dir(auth_info)}")
             except Exception as e:
                 logger.warning(f"Failed to extract user context: {e}", exc_info=True)
 
