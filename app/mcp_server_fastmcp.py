@@ -126,23 +126,30 @@ def with_supabase_logging(func):
             try:
                 auth_info = context.auth
                 if auth_info:
-                    # FastMCP auth context contains user information from OAuth token
-                    user_info = getattr(auth_info, 'user', None)
-                    if user_info:
-                        # Extract provider and user ID
+                    # FastMCP auth is an AccessToken with claims
+                    # Try to get claims from the AccessToken
+                    claims = getattr(auth_info, 'claims', None)
+                    if claims:
+                        user_info = claims
+                        # Extract provider and user ID from claims
                         # Discord user structure: {id, username, email, ...}
                         # Google user structure: {sub, email, name, ...}
                         oauth_user_id = user_info.get('id') or user_info.get('sub')
 
-                        # Determine provider from token claims or domain
-                        if 'discord.com' in str(auth_info):
+                        # Determine provider from issuer or audience in claims
+                        issuer = user_info.get('iss', '')
+                        audience = user_info.get('aud', '')
+
+                        if 'discord' in issuer or 'discord' in audience:
                             oauth_provider = 'discord'
-                        elif 'google' in str(auth_info) or 'googleapis.com' in str(auth_info):
+                        elif 'google' in issuer or 'google' in audience:
                             oauth_provider = 'google'
 
-                        logger.debug(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+                        logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+                    else:
+                        logger.debug(f"No claims found in auth context")
             except Exception as e:
-                logger.debug(f"Failed to extract user context: {e}")
+                logger.warning(f"Failed to extract user context: {e}", exc_info=True)
 
         # Try to initialize services and log, but don't let it break the tool
         try:
