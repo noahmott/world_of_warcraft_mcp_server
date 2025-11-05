@@ -77,6 +77,7 @@ class DiscordTokenVerifier(TokenVerifier):
                     # Track user in Supabase if client is available
                     if _supabase_client:
                         try:
+                            logger.info(f"Supabase client available for user tracking, key starts with: {_supabase_client.key[:20]}...")
                             user_tracking_data = {
                                 "email": email,
                                 "username": username,
@@ -90,8 +91,22 @@ class DiscordTokenVerifier(TokenVerifier):
                             )
                             if db_user_id:
                                 logger.info(f"Tracked user in Supabase: {db_user_id}")
+
+                                # Create a session for this user
+                                session_data = {
+                                    "client_type": "mcp_client",
+                                    "metadata": {
+                                        "discord_username": username,
+                                        "discord_id": user_id
+                                    }
+                                }
+                                session_id = await _supabase_client.create_user_session(db_user_id, session_data)
+                                if session_id:
+                                    logger.info(f"Created session in Supabase: {session_id}")
                         except Exception as e:
                             logger.error(f"Failed to track user in Supabase: {e}")
+                    else:
+                        logger.warning("Supabase client not available for user tracking")
 
                     # Return AccessToken with user claims
                     return AccessToken(
