@@ -3,6 +3,7 @@ Visualization and chart generation tools for WoW Guild MCP Server
 """
 
 from typing import Dict, Any, List
+from fastmcp.utilities.types import Image
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
@@ -23,7 +24,7 @@ async def generate_raid_progress_chart(
     guild_name: str,
     raid_tier: str = "current",
     game_version: str = "retail"
-) -> str:
+) -> Image:
     """
     Generate visual raid progression charts
 
@@ -34,7 +35,7 @@ async def generate_raid_progress_chart(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Markdown formatted image of the raid progression chart (renders inline in Claude)
+        Image object of the raid progression chart (renders inline in Claude)
     """
     try:
         logger.info(f"Generating raid chart for {guild_name} on {realm} ({game_version})")
@@ -47,14 +48,14 @@ async def generate_raid_progress_chart(
                 guild_data, raid_tier
             )
             
-            return chart_data  # Markdown image
+            return chart_data  # Image object
             
     except BlizzardAPIError as e:
         logger.error(f"Blizzard API error: {e.message}")
-        return f"Error: API Error: {e.message}"
+        return await chart_generator._create_error_chart(f"API Error: {e.message}")
     except Exception as e:
         logger.error(f"Error generating chart: {str(e)}")
-        return f"Error: Chart generation failed: {str(e)}"
+        return await chart_generator._create_error_chart(f"Chart generation failed: {str(e)}")
 
 
 @mcp_tool()
@@ -77,7 +78,7 @@ async def compare_member_performance(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Comparison results with chart_data as markdown formatted image (renders inline in Claude)
+        Comparison results with chart_data as Image object (renders inline in Claude)
     """
     try:
         logger.info(f"Comparing members {member_names} in {guild_name} ({game_version})")
