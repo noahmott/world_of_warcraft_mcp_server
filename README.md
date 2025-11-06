@@ -1,13 +1,13 @@
 # WoW Guild Analytics MCP Server
 
 ![MCPServer](https://badge.mcpx.dev?type=server)
-![Python](https://img.shields.io/badge/python-3.13-blue.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688.svg)
-![Battle.net API](https://img.shields.io/badge/Battle.net-API-148EFF.svg?logo=battle.net)
-![Redis](https://img.shields.io/badge/redis-6.2-DC382D.svg)
-![Heroku](https://img.shields.io/badge/heroku-deployed-430098.svg)
-![Supabase](https://img.shields.io/badge/supabase-enabled-3ECF8E.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![FastMCP](https://img.shields.io/pypi/v/fastmcp.svg?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/python-3.13-blue.svg?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688.svg?logo=fastapi&logoColor=white)
+![Battle.net API](https://img.shields.io/badge/Battle.net-API-148EFF.svg?logo=battle.net&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-6.2-DC382D.svg?logo=redis&logoColor=white)
+![Heroku](https://img.shields.io/badge/heroku-deployed-430098.svg?logo=heroku&logoColor=white)
+![Supabase](https://img.shields.io/badge/supabase-enabled-3ECF8E.svg?logo=supabase&logoColor=white)
 <a href="https://discord.com/users/479379710766481436"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?&style=flat&logo=discord&logoColor=white" /></a>
 <a href="https://linkedin.com/in/noahmott"><img alt="LinkedIn" src="https://img.shields.io/badge/linkedin%20-%230077B5.svg?&style=flat&logo=linkedin&logoColor=white"/></a>
 
