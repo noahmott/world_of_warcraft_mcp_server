@@ -48,10 +48,6 @@ class Settings(BaseSettings):
     discord_client_id: Optional[str] = Field(default=None, validation_alias="DISCORD_CLIENT_ID")
     discord_client_secret: Optional[str] = Field(default=None, validation_alias="DISCORD_CLIENT_SECRET")
 
-    # Google OAuth
-    google_client_id: Optional[str] = Field(default=None, validation_alias="GOOGLE_CLIENT_ID")
-    google_client_secret: Optional[str] = Field(default=None, validation_alias="GOOGLE_CLIENT_SECRET")
-
     # Feature Flags
     enable_redis_caching: bool = Field(default=True, validation_alias="ENABLE_REDIS_CACHING")
     enable_supabase_logging: bool = Field(default=True, validation_alias="ENABLE_SUPABASE_LOGGING")

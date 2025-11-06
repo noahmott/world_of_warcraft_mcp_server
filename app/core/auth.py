@@ -12,7 +12,6 @@ which automatically handles the complete OAuth flow including:
 
 Supported providers:
 - Discord: User authentication via Discord OAuth2
-- Google: User authentication via Google OAuth2
 """
 
 import logging
@@ -66,43 +65,6 @@ def create_discord_auth() -> OAuthProxy:
     )
 
 
-def create_google_auth() -> OAuthProxy:
-    """
-    Create Google OAuth provider configuration
-
-    Google OAuth Configuration:
-    - Register your application at: https://console.cloud.google.com
-    - Configure OAuth consent screen
-    - Create OAuth 2.0 Client ID (Web application)
-    - Add redirect URI: {OAUTH_BASE_URL}/oauth/callback
-    - Required scopes: openid, email, profile
-    - OAuth endpoints:
-        - Authorization: https://accounts.google.com/o/oauth2/v2/auth
-        - Token: https://oauth2.googleapis.com/token
-
-    Returns:
-        OAuthProxy configured for Google authentication
-
-    Raises:
-        ValueError: If Google credentials are not configured
-    """
-    if not settings.google_client_id or not settings.google_client_secret:
-        raise ValueError(
-            "Google OAuth credentials not configured. "
-            "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables."
-        )
-
-    logger.info("Configuring Google OAuth authentication")
-
-    return OAuthProxy(
-        upstream_authorization_endpoint="https://accounts.google.com/o/oauth2/v2/auth",
-        upstream_token_endpoint="https://oauth2.googleapis.com/token",
-        upstream_client_id=settings.google_client_id,
-        upstream_client_secret=settings.google_client_secret,
-        base_url=settings.oauth_base_url
-    )
-
-
 def create_oauth_provider() -> Optional[OAuthProxy]:
     """
     Factory function to create the configured OAuth provider
@@ -113,7 +75,6 @@ def create_oauth_provider() -> Optional[OAuthProxy]:
 
     Supported providers:
     - 'discord': Discord OAuth authentication
-    - 'google': Google OAuth authentication
     - None or empty: No authentication (public access)
 
     Returns:
@@ -139,12 +100,10 @@ def create_oauth_provider() -> Optional[OAuthProxy]:
 
     if provider == "discord":
         return create_discord_auth()
-    elif provider == "google":
-        return create_google_auth()
     else:
         raise ValueError(
             f"Unsupported OAuth provider: {provider}. "
-            f"Supported providers: discord, google"
+            f"Supported provider: discord"
         )
 
 
@@ -184,15 +143,6 @@ def get_auth_info() -> dict:
             'scopes': ['identify', 'email'],
             'authorization_endpoint': 'https://discord.com/api/oauth2/authorize',
             'token_endpoint': 'https://discord.com/api/oauth2/token'
-        }
-    elif provider == "google":
-        return {
-            'enabled': True,
-            'provider': 'google',
-            'base_url': settings.oauth_base_url,
-            'scopes': ['openid', 'email', 'profile'],
-            'authorization_endpoint': 'https://accounts.google.com/o/oauth2/v2/auth',
-            'token_endpoint': 'https://oauth2.googleapis.com/token'
         }
     else:
         return {

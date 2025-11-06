@@ -3,6 +3,7 @@
 ![MCPServer](https://badge.mcpx.dev?type=server)
 ![Python](https://img.shields.io/badge/python-3.13-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688.svg)
+![Battle.net API](https://img.shields.io/badge/Battle.net-API-148EFF.svg?logo=battle.net)
 ![Redis](https://img.shields.io/badge/redis-6.2-DC382D.svg)
 ![Heroku](https://img.shields.io/badge/heroku-deployed-430098.svg)
 ![Supabase](https://img.shields.io/badge/supabase-enabled-3ECF8E.svg)
@@ -27,7 +28,7 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 - **Item Lookup**: Batch item data retrieval with detailed metadata
 - **Visualization**: Raid progress tracking and member performance comparisons
 - **Redis Caching**: Optimized response times with intelligent cache management
-- **OAuth Authentication**: Optional Discord OAuth integration for user tracking
+- **OAuth Authentication**: Discord OAuth integration for user tracking
 - **Activity Logging**: Supabase integration for usage analytics and monitoring
 
 ## Tech Stack
@@ -135,9 +136,6 @@ For production (Heroku):
 # Blizzard API Credentials (REQUIRED)
 BLIZZARD_CLIENT_ID=your_blizzard_client_id_here
 BLIZZARD_CLIENT_SECRET=your_blizzard_client_secret_here
-BLIZZARD_REGION=us                    # Options: us, eu, kr, tw, cn
-BLIZZARD_LOCALE=en_US                 # Localization
-WOW_VERSION=retail                    # Options: retail, classic
 
 # Redis Configuration (REQUIRED)
 REDIS_URL=redis://localhost:6379      # Local development
@@ -148,12 +146,10 @@ REDIS_URL=redis://localhost:6379      # Local development
 
 ```bash
 # OAuth Authentication (Optional)
-OAUTH_PROVIDER=                       # Options: discord, google (empty = disabled)
+OAUTH_PROVIDER=                       # Options: discord (empty = disabled)
 OAUTH_BASE_URL=http://localhost:8000  # Your server's public URL
 DISCORD_CLIENT_ID=                    # Discord OAuth credentials
 DISCORD_CLIENT_SECRET=
-GOOGLE_CLIENT_ID=                     # Google OAuth credentials
-GOOGLE_CLIENT_SECRET=
 
 # Supabase (Optional - Activity Logging)
 SUPABASE_URL=                         # Your Supabase project URL
@@ -279,7 +275,7 @@ Comprehensive demographic breakdown of guild composition.
 ### MCP Endpoint
 - **Path**: `/mcp`
 - **Protocol**: HTTP transport (FastMCP 2.0)
-- **Authentication**: Optional OAuth (Discord or Google)
+- **Authentication**: Optional OAuth (Discord)
 
 ### Health Check
 ```bash
@@ -370,7 +366,7 @@ The server implements intelligent Redis caching:
 
 **Activity Logging** (via Supabase):
 - All MCP tool calls logged with user tracking
-- OAuth user attribution (Discord/Google)
+- OAuth user attribution (Discord)
 - Request/response metadata and duration tracking
 - Error tracking and debugging
 
