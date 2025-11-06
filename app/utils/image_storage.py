@@ -87,11 +87,14 @@ class SupabaseImageStorage:
             # Convert string to bytes
             html_bytes = html_content.encode('utf-8')
 
-            # Upload to Supabase Storage
+            # Upload to Supabase Storage with proper HTML headers
             response = self.supabase.storage.from_(self.bucket_name).upload(
                 path=filename,
                 file=html_bytes,
-                file_options={"content-type": "text/html"}
+                file_options={
+                    "content-type": "text/html; charset=utf-8",
+                    "cache-control": "public, max-age=3600"
+                }
             )
 
             # Get public URL
