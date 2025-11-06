@@ -159,12 +159,12 @@ class DiscordTokenVerifier(TokenVerifier):
             logger.error(f"Error verifying Discord token: {e}", exc_info=True)
             return None
 
-    async def refresh(self, refresh_token: str) -> Optional[Dict[str, Any]]:
+    async def refresh(self, _refresh_token: str) -> Optional[Dict[str, Any]]:
         """
         Refresh a Discord access token using a refresh token
 
         Args:
-            refresh_token: The Discord OAuth refresh token
+            _refresh_token: The Discord OAuth refresh token (unused - handled by OAuthProxy)
 
         Returns:
             Dict with new access_token and refresh_token if successful, None otherwise

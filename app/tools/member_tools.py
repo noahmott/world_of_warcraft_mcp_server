@@ -62,76 +62,75 @@ async def get_character_details(
         
         async with BlizzardAPIClient(game_version=game_version) as client:
             # Always get basic profile
-            if "profile" in sections or True:  # Always include profile
-                try:
-                    profile = await client.get_character_profile(realm, character_name)
-                    
-                    # Handle case where profile might not be a dict
-                    if not isinstance(profile, dict):
-                        logger.error(f"Profile data is not a dict: {type(profile)} - {profile}")
-                        return error_response(f"Invalid profile data received from API")
-                    
-                    # Safe navigation for nested fields - handle both nested and direct string formats
-                    race_data = profile.get("race", {})
-                    if isinstance(race_data, dict):
-                        race_name = race_data.get("name")
-                        if isinstance(race_name, dict):
-                            race_name = race_name.get("en_US", "Unknown")
-                        elif not race_name:
-                            race_name = "Unknown"
-                    else:
-                        race_name = str(race_data) if race_data else "Unknown"
-                    
-                    class_data = profile.get("character_class", {})
-                    if isinstance(class_data, dict):
-                        class_name = class_data.get("name")
-                        if isinstance(class_name, dict):
-                            class_name = class_name.get("en_US", "Unknown")
-                        elif not class_name:
-                            class_name = "Unknown"
-                    else:
-                        class_name = str(class_data) if class_data else "Unknown"
-                    
-                    spec_data = profile.get("active_spec", {})
-                    if isinstance(spec_data, dict):
-                        spec_name = spec_data.get("name")
-                        if isinstance(spec_name, dict):
-                            spec_name = spec_name.get("en_US", "Unknown")
-                        elif not spec_name:
-                            spec_name = "Unknown"
-                    else:
-                        spec_name = str(spec_data) if spec_data else "Unknown"
-                    
-                    realm_data = profile.get("realm", {})
-                    if isinstance(realm_data, dict):
-                        realm_name = realm_data.get("name", "Unknown")
-                    else:
-                        realm_name = str(realm_data) if realm_data else "Unknown"
-                    
-                    faction_data = profile.get("faction", {})
-                    if isinstance(faction_data, dict):
-                        faction_name = faction_data.get("name", "Unknown")
-                    else:
-                        faction_name = str(faction_data) if faction_data else "Unknown"
-                    
-                    guild_data = profile.get("guild")
-                    guild_name = guild_data.get("name") if isinstance(guild_data, dict) else None
-                    
-                    character_data["profile"] = {
-                        "name": profile.get("name"),
-                        "level": profile.get("level"),
-                        "race": race_name,
-                        "class": class_name,
-                        "active_spec": spec_name,
-                        "realm": realm_name,
-                        "faction": faction_name,
-                        "guild": guild_name,
-                        "achievement_points": profile.get("achievement_points", 0),
-                        "equipped_item_level": profile.get("equipped_item_level", 0),
-                        "average_item_level": profile.get("average_item_level", 0),
-                        "last_login": profile.get("last_login_timestamp")
-                    }
-                except BlizzardAPIError as e:
+            try:
+                profile = await client.get_character_profile(realm, character_name)
+
+                # Handle case where profile might not be a dict
+                if not isinstance(profile, dict):
+                    logger.error(f"Profile data is not a dict: {type(profile)} - {profile}")
+                    return error_response(f"Invalid profile data received from API")
+
+                # Safe navigation for nested fields - handle both nested and direct string formats
+                race_data = profile.get("race", {})
+                if isinstance(race_data, dict):
+                    race_name = race_data.get("name")
+                    if isinstance(race_name, dict):
+                        race_name = race_name.get("en_US", "Unknown")
+                    elif not race_name:
+                        race_name = "Unknown"
+                else:
+                    race_name = str(race_data) if race_data else "Unknown"
+
+                class_data = profile.get("character_class", {})
+                if isinstance(class_data, dict):
+                    class_name = class_data.get("name")
+                    if isinstance(class_name, dict):
+                        class_name = class_name.get("en_US", "Unknown")
+                    elif not class_name:
+                        class_name = "Unknown"
+                else:
+                    class_name = str(class_data) if class_data else "Unknown"
+
+                spec_data = profile.get("active_spec", {})
+                if isinstance(spec_data, dict):
+                    spec_name = spec_data.get("name")
+                    if isinstance(spec_name, dict):
+                        spec_name = spec_name.get("en_US", "Unknown")
+                    elif not spec_name:
+                        spec_name = "Unknown"
+                else:
+                    spec_name = str(spec_data) if spec_data else "Unknown"
+
+                realm_data = profile.get("realm", {})
+                if isinstance(realm_data, dict):
+                    realm_name = realm_data.get("name", "Unknown")
+                else:
+                    realm_name = str(realm_data) if realm_data else "Unknown"
+
+                faction_data = profile.get("faction", {})
+                if isinstance(faction_data, dict):
+                    faction_name = faction_data.get("name", "Unknown")
+                else:
+                    faction_name = str(faction_data) if faction_data else "Unknown"
+
+                guild_data = profile.get("guild")
+                guild_name = guild_data.get("name") if isinstance(guild_data, dict) else None
+
+                character_data["profile"] = {
+                    "name": profile.get("name"),
+                    "level": profile.get("level"),
+                    "race": race_name,
+                    "class": class_name,
+                    "active_spec": spec_name,
+                    "realm": realm_name,
+                    "faction": faction_name,
+                    "guild": guild_name,
+                    "achievement_points": profile.get("achievement_points", 0),
+                    "equipped_item_level": profile.get("equipped_item_level", 0),
+                    "average_item_level": profile.get("average_item_level", 0),
+                    "last_login": profile.get("last_login_timestamp")
+                }
+            except BlizzardAPIError as e:
                     errors.append(f"Profile: {str(e)}")
                     return error_response(f"Character not found: {str(e)}")
             

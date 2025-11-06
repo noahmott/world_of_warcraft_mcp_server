@@ -5,14 +5,12 @@ Replaces SQLite/PostgreSQL with Redis for all staging operations
 
 import asyncio
 import json
-import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List, Union
 import redis.asyncio as aioredis
 
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
-from ..utils.namespace_utils import get_dynamic_namespace, get_static_namespace
 
 logger = logging.getLogger(__name__)
 

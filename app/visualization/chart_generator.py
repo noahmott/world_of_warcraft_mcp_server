@@ -11,8 +11,6 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
-from PIL import Image
 import numpy as np
 
 from ..utils.wow_utils import get_localized_name, parse_class_info

@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from aiohttp import ClientSession, ClientResponseError
+from aiohttp import ClientSession
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import json
 from urllib.parse import quote
@@ -122,7 +122,7 @@ class BlizzardAPIClient:
         self.session = aiohttp.ClientSession(timeout=timeout)
         return self
     
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, _exc_type, _exc_val, _exc_tb):
         """Async context manager exit"""
         if self.session:
             await self.session.close()

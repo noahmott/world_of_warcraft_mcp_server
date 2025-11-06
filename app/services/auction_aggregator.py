@@ -4,8 +4,8 @@ Auction data aggregator service for comprehensive market analysis
 
 import uuid
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
-from collections import defaultdict, Counter
+from typing import Dict, List, Any, Optional
+from collections import defaultdict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 import numpy as np

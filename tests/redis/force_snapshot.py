@@ -13,7 +13,7 @@ sys.path.insert(0, project_root)
 load_dotenv()
 
 # Import after adding to path
-from app.mcp_server_fastmcp import get_or_initialize_services
+from app.server import get_or_initialize_services
 from app.api.blizzard_client import BlizzardAPIClient
 from datetime import datetime, timezone
 import json
