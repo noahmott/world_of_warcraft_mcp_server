@@ -318,6 +318,10 @@ def with_supabase_logging(func):
 # MCP TOOL DEFINITIONS - 8 CONSOLIDATED TOOLS
 # ============================================================================
 
+# Set MCP instance for tool modules before importing
+from .tools.base import set_mcp_instance
+set_mcp_instance(mcp)
+
 # Import tool implementations from modules
 from .tools import guild_tools, member_tools, realm_tools, item_tools, auction_tools, visualization_tools
 
