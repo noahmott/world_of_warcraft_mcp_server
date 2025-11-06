@@ -100,16 +100,24 @@ class SupabaseRealTimeClient:
                 logger.error("Supabase client not initialized")
                 return False
 
+            # Convert to dict and remove fields that don't exist in the activity_logs table
+            entry_dict = asdict(log_entry)
+            # Remove oauth fields - these are tracked via user_id instead
+            entry_dict.pop('oauth_provider', None)
+            entry_dict.pop('oauth_user_id', None)
+            # Remove session_id_ref if it's the same as session_id
+            entry_dict.pop('session_id_ref', None)
+
             # Insert activity log into Supabase table
-            result = await self.client.table("activity_logs").insert(asdict(log_entry)).execute()
-            
+            result = await self.client.table("activity_logs").insert(entry_dict).execute()
+
             if result.data:
                 logger.debug(f"Activity log streamed successfully: {log_entry.id}")
                 return True
             else:
                 logger.error(f"Failed to stream activity log: {result}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"Error streaming activity log: {e}")
             return False
