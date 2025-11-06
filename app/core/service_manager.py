@@ -2,17 +2,16 @@
 Centralized service management for WoW Guild MCP Server
 """
 
-import os
-import logging
 import redis.asyncio as aioredis
 from typing import Optional
-from datetime import datetime, timezone
 
 from ..services.activity_logger import ActivityLogger, initialize_activity_logger
 from ..services.supabase_client import SupabaseRealTimeClient
 from ..services.supabase_streaming import initialize_streaming_service
+from ..core.config import settings
+from ..utils.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ServiceManager:
@@ -52,7 +51,7 @@ class ServiceManager:
     
     async def _initialize_redis(self):
         """Initialize Redis connection"""
-        redis_url = os.getenv("REDIS_URL")
+        redis_url = settings.redis_url
         if not redis_url:
             logger.warning("REDIS_URL not set - Redis features will be disabled")
             return
@@ -84,8 +83,8 @@ class ServiceManager:
     
     async def _initialize_supabase(self):
         """Initialize Supabase services"""
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        supabase_url = settings.supabase_url
+        supabase_key = settings.supabase_key
 
         if not supabase_url or not supabase_key:
             logger.warning("Supabase environment variables not set - logging to Supabase disabled")

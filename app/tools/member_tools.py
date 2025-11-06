@@ -2,89 +2,16 @@
 Character and member analysis tools for WoW Guild MCP Server
 """
 
-import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 from .base import mcp_tool, with_supabase_logging, get_or_initialize_services
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
-from ..workflows.guild_analysis import GuildAnalysisWorkflow
+from ..utils.logging_utils import get_logger
+from ..utils.datetime_utils import utc_now_iso
+from ..utils.response_utils import error_response, api_error_response
 
-# Create workflow instance
-guild_workflow = GuildAnalysisWorkflow()
-
-logger = logging.getLogger(__name__)
-
-
-@mcp_tool()
-@with_supabase_logging
-async def analyze_member_performance(
-    realm: str,
-    character_name: str,
-    analysis_depth: str = "standard",
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """
-    Analyze individual member performance and progression
-    
-    Args:
-        realm: Server realm
-        character_name: Character name to analyze
-        analysis_depth: Analysis depth ('basic', 'standard', 'detailed')
-        game_version: WoW version ('retail' or 'classic')
-    
-    Returns:
-        Comprehensive member analysis
-    """
-    try:
-        logger.info(f"Analyzing member {character_name} on {realm} ({game_version})")
-        
-        async with BlizzardAPIClient(game_version=game_version) as client:
-            # Get character profile
-            char_profile = await client.get_character_profile(realm, character_name)
-            
-            # Get equipment
-            char_equipment = await client.get_character_equipment(realm, character_name)
-            char_profile["equipment_summary"] = client._summarize_equipment(char_equipment)
-            
-            # Get achievements if detailed analysis
-            if analysis_depth in ["standard", "detailed"]:
-                try:
-                    char_achievements = await client.get_character_achievements(realm, character_name)
-                    char_profile["recent_achievements"] = char_achievements
-                except BlizzardAPIError:
-                    char_profile["recent_achievements"] = {}
-            
-            # Get mythic+ data if detailed analysis
-            if analysis_depth == "detailed":
-                try:
-                    mythic_data = await client.get_character_mythic_keystone(realm, character_name)
-                    char_profile["mythic_plus_data"] = mythic_data
-                except BlizzardAPIError:
-                    char_profile["mythic_plus_data"] = {}
-            
-            # Process through member analysis workflow
-            analysis_result = await guild_workflow.analyze_member(
-                char_profile, analysis_depth
-            )
-            
-            return {
-                "success": True,
-                "character_name": character_name,
-                "realm": realm,
-                "member_info": analysis_result["character_summary"],
-                "performance_metrics": analysis_result["performance_analysis"],
-                "equipment_analysis": analysis_result["equipment_insights"],
-                "progression_summary": analysis_result.get("progression_summary", {}),
-                "analysis_depth": analysis_depth
-            }
-            
-    except BlizzardAPIError as e:
-        logger.error(f"Blizzard API error: {e.message}")
-        return {"error": f"API Error: {e.message}"}
-    except Exception as e:
-        logger.error(f"Error analyzing member: {str(e)}")
-        return {"error": f"Member analysis failed: {str(e)}"}
+logger = get_logger(__name__)
 
 
 @mcp_tool()
@@ -142,7 +69,7 @@ async def get_character_details(
                     # Handle case where profile might not be a dict
                     if not isinstance(profile, dict):
                         logger.error(f"Profile data is not a dict: {type(profile)} - {profile}")
-                        return {"error": f"Invalid profile data received from API"}
+                        return error_response(f"Invalid profile data received from API")
                     
                     # Safe navigation for nested fields - handle both nested and direct string formats
                     race_data = profile.get("race", {})
@@ -206,7 +133,7 @@ async def get_character_details(
                     }
                 except BlizzardAPIError as e:
                     errors.append(f"Profile: {str(e)}")
-                    return {"error": f"Character not found: {str(e)}"}
+                    return error_response(f"Character not found: {str(e)}")
             
             # Get equipment details
             if "equipment" in sections:
@@ -424,7 +351,7 @@ async def get_character_details(
             
             # Add timestamp and metadata
             character_data["metadata"] = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": utc_now_iso(),
                 "requested_sections": sections,
                 "errors": errors if errors else None,
                 "game_version": game_version
@@ -434,7 +361,7 @@ async def get_character_details(
             
     except BlizzardAPIError as e:
         logger.error(f"Blizzard API error: {e.message}")
-        return {"error": f"API Error: {e.message}"}
+        return api_error_response(e)
     except Exception as e:
         logger.error(f"Error getting character details: {str(e)}")
-        return {"error": f"Failed to retrieve character details: {str(e)}"}
+        return error_response(f"Failed to retrieve character details: {str(e)}")

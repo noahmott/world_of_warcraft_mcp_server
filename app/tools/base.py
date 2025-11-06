@@ -4,12 +4,13 @@ Base functionality for MCP tools including decorators and shared utilities
 
 import functools
 import time
-import logging
-from typing import Any, Dict, Callable
-from datetime import datetime, timezone
 import uuid
+from typing import Any, Dict, Callable
 
-logger = logging.getLogger(__name__)
+from ..utils.logging_utils import get_logger
+from ..utils.datetime_utils import utc_now_iso
+
+logger = get_logger(__name__)
 
 # Global service references
 mcp = None
@@ -125,7 +126,7 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
             id=str(uuid.uuid4()),
             session_id="fastmcp-direct",
             activity_type="tool_call" if not error_message else "tool_error",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now_iso(),
             tool_name=tool_name,
             request_data=request_data,
             response_data=response_data,

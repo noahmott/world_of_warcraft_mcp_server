@@ -3,6 +3,7 @@ Configuration management for WoW Guild MCP Server
 """
 
 import os
+from functools import lru_cache
 from typing import Optional
 try:
     from pydantic import BaseSettings, Field
@@ -30,11 +31,7 @@ class Settings(BaseSettings):
     # Supabase Settings
     supabase_url: Optional[str] = Field(None, env="SUPABASE_URL")
     supabase_key: Optional[str] = Field(None, env="SUPABASE_KEY")
-    
-    # OpenAI Settings
-    openai_api_key: Optional[str] = Field(None, env="OPENAI_API_KEY")
-    openai_model: str = Field("gpt-4o-mini", env="OPENAI_MODEL")
-    
+
     # Server Settings
     port: int = Field(8000, env="PORT")
     host: str = Field("0.0.0.0", env="HOST")
@@ -66,5 +63,19 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-# Global settings instance
-settings = Settings()
+@lru_cache()
+def get_settings() -> Settings:
+    """
+    Get cached settings instance
+
+    Returns:
+        Singleton Settings instance
+
+    Note:
+        Uses lru_cache to ensure only one instance is created
+    """
+    return Settings()
+
+
+# Global settings instance - use this for imports
+settings = get_settings()

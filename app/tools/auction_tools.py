@@ -3,7 +3,6 @@ Auction house and economy analysis tools for WoW Guild MCP Server
 """
 
 import json
-import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 
@@ -11,11 +10,14 @@ from .base import mcp_tool, with_supabase_logging, get_or_initialize_services
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
 from ..services.auction_aggregator import AuctionAggregatorService
 from ..utils.namespace_utils import get_connected_realm_id
+from ..utils.logging_utils import get_logger
+from ..utils.datetime_utils import utc_now_iso
+from ..utils.response_utils import success_response, error_response, api_error_response
 
 # Create auction aggregator instance
 auction_aggregator = AuctionAggregatorService()
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @mcp_tool()
@@ -46,13 +48,13 @@ async def get_auction_house_snapshot(
             connected_realm_id = await get_connected_realm_id(realm, game_version, client)
             
             if not connected_realm_id:
-                return {"error": f"Could not find connected realm ID for realm {realm}"}
+                return error_response(f"Could not find connected realm ID for realm {realm}")
             
             # Get current auction data
             ah_data = await client.get_auction_house_data(connected_realm_id)
             
             if not ah_data or 'auctions' not in ah_data:
-                return {"error": "No auction data available"}
+                return error_response("No auction data available")
             
             # Aggregate auction data
             aggregated = auction_aggregator.aggregate_auction_data(ah_data['auctions'])
@@ -79,7 +81,7 @@ async def get_auction_house_snapshot(
                 "success": True,
                 "realm": realm,
                 "connected_realm_id": connected_realm_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": utc_now_iso(),
                 "total_items": len(aggregated),
                 "items_returned": len(sorted_items),
                 "market_data": dict(sorted_items)
@@ -87,10 +89,10 @@ async def get_auction_house_snapshot(
             
     except BlizzardAPIError as e:
         logger.error(f"Blizzard API error: {e.message}")
-        return {"error": f"API Error: {e.message}"}
+        return api_error_response(e)
     except Exception as e:
         logger.error(f"Error getting auction house data: {str(e)}")
-        return {"error": f"Auction house data failed: {str(e)}"}
+        return error_response(f"Auction house data failed: {str(e)}")
 
 
 @mcp_tool()
@@ -213,7 +215,7 @@ async def capture_economy_snapshot(
         
     except Exception as e:
         logger.error(f"Error capturing economy snapshots: {str(e)}")
-        return {"error": f"Economy snapshot capture failed: {str(e)}"}
+        return error_response(f"Economy snapshot capture failed: {str(e)}")
 
 
 @mcp_tool()
@@ -341,7 +343,7 @@ async def get_economy_trends(
         
     except Exception as e:
         logger.error(f"Error getting economy trends: {str(e)}")
-        return {"error": f"Economy trends retrieval failed: {str(e)}"}
+        return error_response(f"Economy trends retrieval failed: {str(e)}")
 
 
 @mcp_tool()
@@ -372,13 +374,13 @@ async def find_market_opportunities(
             connected_realm_id = await get_connected_realm_id(realm, game_version, client)
             
             if not connected_realm_id:
-                return {"error": "Could not find connected realm ID"}
+                return error_response("Could not find connected realm ID")
             
             # Get current auction data
             ah_data = await client.get_auction_house_data(connected_realm_id)
             
             if not ah_data or 'auctions' not in ah_data:
-                return {"error": "No auction data available"}
+                return error_response("No auction data available")
             
             # Aggregate auction data
             aggregated = auction_aggregator.aggregate_auction_data(ah_data['auctions'])
@@ -421,10 +423,10 @@ async def find_market_opportunities(
             
     except BlizzardAPIError as e:
         logger.error(f"Blizzard API error: {e.message}")
-        return {"error": f"API Error: {e.message}"}
+        return api_error_response(e)
     except Exception as e:
         logger.error(f"Error finding market opportunities: {str(e)}")
-        return {"error": f"Market opportunity search failed: {str(e)}"}
+        return error_response(f"Market opportunity search failed: {str(e)}")
 
 
 @mcp_tool()
@@ -456,7 +458,7 @@ async def analyze_item_market_history(
             
             if not connected_realm_id:
                 logger.error(f"Could not find connected realm ID for {realm} ({game_version})")
-                return {"error": f"Could not find connected realm ID for {realm}"}
+                return error_response(f"Could not find connected realm ID for {realm}")
             
             # Historical data requires persistent storage - returning current analysis
             # Mock analysis structure for future implementation
@@ -476,7 +478,7 @@ async def analyze_item_market_history(
             
     except Exception as e:
         logger.error(f"Error analyzing market history: {str(e)}")
-        return {"error": f"Market analysis failed: {str(e)}"}
+        return error_response(f"Market analysis failed: {str(e)}")
 
 
 @mcp_tool()

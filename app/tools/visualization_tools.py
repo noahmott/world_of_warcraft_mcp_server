@@ -2,17 +2,18 @@
 Visualization and chart generation tools for WoW Guild MCP Server
 """
 
-import logging
 from typing import Dict, Any, List
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
 from ..visualization.chart_generator import ChartGenerator
+from ..utils.logging_utils import get_logger
+from ..utils.response_utils import error_response, api_error_response
 
 # Create chart generator instance
 chart_generator = ChartGenerator()
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @mcp_tool()
@@ -110,4 +111,4 @@ async def compare_member_performance(
             
     except Exception as e:
         logger.error(f"Error comparing members: {str(e)}")
-        return {"error": f"Comparison failed: {str(e)}"}
+        return error_response(f"Comparison failed: {str(e)}")

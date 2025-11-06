@@ -2,13 +2,14 @@
 Item lookup and information tools for WoW Guild MCP Server
 """
 
-import logging
 from typing import Dict, Any, List
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient
+from ..utils.logging_utils import get_logger
+from ..utils.response_utils import error_response, api_error_response
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @mcp_tool()
@@ -71,7 +72,7 @@ async def lookup_item_details(
             
     except Exception as e:
         logger.error(f"Error looking up item {item_id}: {str(e)}")
-        return {"error": f"Item lookup failed: {str(e)}"}
+        return error_response(f"Item lookup failed: {str(e)}")
 
 
 @mcp_tool()
@@ -128,4 +129,4 @@ async def lookup_multiple_items(
         
     except Exception as e:
         logger.error(f"Error looking up items: {str(e)}")
-        return {"error": f"Multiple item lookup failed: {str(e)}"}
+        return error_response(f"Multiple item lookup failed: {str(e)}")

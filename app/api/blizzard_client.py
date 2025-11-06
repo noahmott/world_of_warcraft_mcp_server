@@ -13,9 +13,6 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 import json
 from urllib.parse import quote
 
-from ..models.guild import Guild
-from ..models.member import Member
-
 logger = logging.getLogger(__name__)
 
 # Known retail realm connected IDs (for fallback when API search fails)
@@ -85,11 +82,13 @@ class BlizzardAPIClient:
     AUTH_URL = "https://oauth.battle.net/token"
     
     def __init__(self, game_version: Optional[str] = None):
-        self.client_id = os.getenv("BLIZZARD_CLIENT_ID")
-        self.client_secret = os.getenv("BLIZZARD_CLIENT_SECRET")
-        self.region = os.getenv("BLIZZARD_REGION", "us")
-        self.locale = os.getenv("BLIZZARD_LOCALE", "en_US")
-        self.game_version = (game_version or os.getenv("WOW_VERSION", "classic")).lower()  # "retail" or "classic"
+        from ..core.config import settings
+
+        self.client_id = settings.blizzard_client_id
+        self.client_secret = settings.blizzard_client_secret
+        self.region = settings.blizzard_region
+        self.locale = settings.blizzard_locale
+        self.game_version = (game_version or settings.wow_version).lower()  # "retail" or "classic"
         
         # Dynamic base URL based on region
         self.base_url = f"https://{self.region}.api.blizzard.com"

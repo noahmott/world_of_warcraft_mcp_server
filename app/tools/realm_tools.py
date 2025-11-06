@@ -2,14 +2,15 @@
 Realm status and information tools for WoW Guild MCP Server
 """
 
-import logging
 from typing import Dict, Any
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
 from ..core.constants import KNOWN_CLASSIC_REALMS, KNOWN_RETAIL_REALMS
+from ..utils.logging_utils import get_logger
+from ..utils.response_utils import error_response, api_error_response
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @mcp_tool()
@@ -107,7 +108,7 @@ async def get_realm_status(
                     
     except Exception as e:
         logger.error(f"Error getting realm status: {str(e)}")
-        return {"error": f"Realm status lookup failed: {str(e)}"}
+        return error_response(f"Realm status lookup failed: {str(e)}")
 
 
 @mcp_tool()
@@ -185,4 +186,4 @@ async def get_classic_realm_id(
                 
     except Exception as e:
         logger.error(f"Error getting classic realm ID: {str(e)}")
-        return {"error": f"Classic realm ID lookup failed: {str(e)}"}
+        return error_response(f"Classic realm ID lookup failed: {str(e)}")

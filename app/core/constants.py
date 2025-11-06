@@ -112,3 +112,44 @@ API_TIMEOUT_READ = 60
 # Rate limiting
 RATE_LIMIT_REQUESTS = 100  # requests per time window
 RATE_LIMIT_WINDOW = 1  # time window in seconds
+
+# ============================================================================
+# RESPONSE KEYS (Standardized)
+# ============================================================================
+
+RESPONSE_SUCCESS = "success"
+RESPONSE_ERROR = "error"
+RESPONSE_TIMESTAMP = "timestamp"
+RESPONSE_DATA = "data"
+
+# ============================================================================
+# SESSION IDENTIFIERS
+# ============================================================================
+
+DEFAULT_SESSION_ID = "fastmcp-session"
+DIRECT_SESSION_ID = "fastmcp-direct"
+
+# ============================================================================
+# LOGGING SOURCES
+# ============================================================================
+
+LOG_SOURCE_FASTMCP = "fastmcp"
+LOG_SOURCE_DIRECT = "direct"
+LOG_SOURCE_SCHEDULER = "scheduler"
+
+# ============================================================================
+# ACTIVITY TYPES
+# ============================================================================
+
+ACTIVITY_TOOL_CALL = "tool_call"
+ACTIVITY_TOOL_ERROR = "tool_error"
+ACTIVITY_REQUEST = "request"
+ACTIVITY_RESPONSE = "response"
+
+# ============================================================================
+# PAGINATION DEFAULTS
+# ============================================================================
+
+DEFAULT_PAGE_SIZE = 100
+MAX_PAGE_SIZE = 1000
+MIN_PAGE_SIZE = 1

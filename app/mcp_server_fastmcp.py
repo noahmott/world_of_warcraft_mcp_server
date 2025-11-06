@@ -13,10 +13,8 @@ A comprehensive World of Warcraft guild analytics MCP server that provides:
 import asyncio
 import httpx
 import json
-import logging
 import os
 import uuid
-from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 
 # Third-party imports
@@ -36,17 +34,16 @@ from .services.redis_staging import RedisDataStagingService
 from .services.supabase_client import SupabaseRealTimeClient, ActivityLogEntry
 from .services.supabase_streaming import initialize_streaming_service
 from .visualization.chart_generator import ChartGenerator
-from .workflows.guild_analysis import GuildAnalysisWorkflow
+from .utils.datetime_utils import utc_now, utc_now_iso, format_duration_ms
+from .utils.logging_utils import setup_logging, get_logger
+from .utils.response_utils import success_response, error_response, api_error_response
 
 # Load environment variables
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+setup_logging()
+logger = get_logger(__name__)
 
 # Initialize OAuth authentication (if configured)
 from .core.auth import create_oauth_provider, get_auth_info
@@ -66,7 +63,6 @@ mcp = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
 
 # Initialize service instances
 chart_generator = ChartGenerator()
-guild_workflow = GuildAnalysisWorkflow()
 auction_aggregator = AuctionAggregatorService()
 market_history = MarketHistoryService()
 
@@ -117,7 +113,7 @@ def with_supabase_logging(func):
         logger.info(f"=== with_supabase_logging wrapper called for {func.__name__} ===")
         logger.info(f"Args: {args}, Kwargs keys: {list(kwargs.keys())}")
 
-        start_time = datetime.now(timezone.utc)
+        start_time = utc_now()
         tool_name = func.__name__
 
         # Extract OAuth user information from HTTP headers
@@ -188,7 +184,7 @@ def with_supabase_logging(func):
 
             # Try to log successful response
             try:
-                duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+                duration_ms = format_duration_ms(start_time)
                 await log_to_supabase(
                     tool_name=tool_name,
                     request_data=kwargs,
@@ -228,143 +224,6 @@ def with_supabase_logging(func):
 # All tools are decorated with @mcp.tool() and @with_supabase_logging for
 # automatic registration with FastMCP and comprehensive activity logging.
 # ============================================================================
-
-# Guild Analysis Tools
-@mcp.tool()
-@with_supabase_logging
-async def analyze_guild_performance(
-    realm: str,
-    guild_name: str,
-    analysis_type: str = "comprehensive",
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """
-    Analyze guild performance metrics and member activity
-    
-    Args:
-        realm: Server realm (e.g., 'stormrage', 'area-52')
-        guild_name: Guild name
-        analysis_type: Type of analysis ('comprehensive', 'basic', 'performance')
-        game_version: WoW version ('retail' or 'classic')
-    
-    Returns:
-        Guild analysis results with performance metrics
-    """
-    start_time = datetime.now(timezone.utc)
-    log_id = ""
-    
-    try:
-        logger.info(f"Analyzing guild {guild_name} on {realm} ({game_version})")
-        
-        # Initialize services if needed
-        await get_or_initialize_services()
-        
-        # Request data for logging
-        request_data = {
-            "realm": realm,
-            "guild_name": guild_name,
-            "analysis_type": analysis_type,
-            "game_version": game_version
-        }
-        
-        # Log the request if activity logger is available
-        if activity_logger:
-            log_id = await activity_logger.log_request(
-                session_id="fastmcp-session",
-                tool_name="analyze_guild_performance",
-                request_data=request_data
-            )
-        
-        async with BlizzardAPIClient(game_version=game_version) as client:
-            # For comprehensive analysis, check if we have cached data first
-            if analysis_type == "comprehensive" and redis_client:
-                cache_key = f"guild_roster:{game_version}:{realm}:{guild_name}".lower()
-                cached_data = await redis_client.get(cache_key)
-                
-                if cached_data:
-                    logger.info(f"Using cached guild data for {guild_name}")
-                    guild_data = {
-                        "guild_info": json.loads(cached_data.decode()),
-                        "guild_roster": json.loads(cached_data.decode()),
-                        "members_data": json.loads(cached_data.decode()).get("members", [])[:20],  # Limit to 20 for analysis
-                        "fetch_timestamp": datetime.now(timezone.utc).isoformat(),
-                        "from_cache": True
-                    }
-                else:
-                    # Get comprehensive guild data but limit member fetching
-                    guild_data = await client.get_comprehensive_guild_data(realm, guild_name)
-                    # Limit members for analysis to prevent timeout
-                    if "members_data" in guild_data and len(guild_data["members_data"]) > 20:
-                        guild_data["members_data"] = guild_data["members_data"][:20]
-                        logger.info(f"Limited member analysis to 20 members to prevent timeout")
-            else:
-                # For basic analysis, just get guild info and roster without individual profiles
-                guild_info = await client.get_guild_info(realm, guild_name)
-                guild_roster = await client.get_guild_roster(realm, guild_name)
-                guild_data = {
-                    "guild_info": guild_info,
-                    "guild_roster": guild_roster,
-                    "members_data": [],  # No individual profiles for basic analysis
-                    "fetch_timestamp": datetime.now(timezone.utc).isoformat()
-                }
-            
-            # Process through workflow
-            analysis_result = await guild_workflow.analyze_guild(
-                guild_data, analysis_type
-            )
-            
-            # Extract the formatted response from the workflow state
-            formatted = analysis_result.get("analysis_results", {}).get("formatted_response", {})
-            
-            result = {
-                "success": True,
-                "guild_info": formatted.get("guild_summary", {}),
-                "member_data": formatted.get("member_analysis", {}),
-                "analysis_results": formatted.get("performance_insights", {}),
-                "visualization_urls": formatted.get("chart_urls", []),
-                "analysis_type": analysis_type,
-                "timestamp": guild_data["fetch_timestamp"]
-            }
-            
-            duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
-            
-            # Log successful response
-            if activity_logger and log_id:
-                await activity_logger.log_response(
-                    log_id=log_id,
-                    response_data={"success": True, "guild_name": guild_name},
-                    duration_ms=duration_ms,
-                    success=True
-                )
-            
-            
-            return result
-            
-    except BlizzardAPIError as e:
-        logger.error(f"Blizzard API error: {e.message}")
-        if activity_logger:
-            await activity_logger.log_error(
-                session_id="fastmcp-session",
-                error_message=f"API Error: {e.message}",
-                tool_name="analyze_guild_performance",
-                metadata={"realm": realm, "guild_name": guild_name}
-            )
-        
-        
-        return {"error": f"API Error: {e.message}"}
-    except Exception as e:
-        logger.error(f"Unexpected error analyzing guild: {str(e)}")
-        if activity_logger:
-            await activity_logger.log_error(
-                session_id="fastmcp-session",
-                error_message=str(e),
-                tool_name="analyze_guild_performance",
-                metadata={"realm": realm, "guild_name": guild_name}
-            )
-        
-        
-        return {"error": f"Analysis failed: {str(e)}"}
-
 
 # Guild Member Tools
 @mcp.tool()
@@ -411,7 +270,7 @@ async def get_guild_member_list(
                     
                     # Check cache age
                     stored_date = datetime.fromisoformat(cached_data.get("cached_at", ""))
-                    cache_age = datetime.now(timezone.utc) - stored_date
+                    cache_age = utc_now() - stored_date
                     cache_age_days = cache_age.days
                     
                     # If cache is less than 15 days old, use it
@@ -483,7 +342,7 @@ async def get_guild_member_list(
                         "members": all_members,
                         "total_members": total_members,
                         "guild_info": guild_info,
-                        "cached_at": datetime.now(timezone.utc).isoformat(),
+                        "cached_at": utc_now_iso(),
                         "game_version": game_version
                     }
                     
@@ -529,77 +388,6 @@ async def get_guild_member_list(
     except Exception as e:
         logger.error(f"Error getting member list: {str(e)}")
         return {"error": f"Member list failed: {str(e)}"}
-
-@mcp.tool()
-@with_supabase_logging
-async def analyze_member_performance(
-    realm: str,
-    character_name: str,
-    analysis_depth: str = "standard",
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """
-    Analyze individual member performance and progression
-    
-    Args:
-        realm: Server realm
-        character_name: Character name to analyze
-        analysis_depth: Analysis depth ('basic', 'standard', 'detailed')
-        game_version: WoW version ('retail' or 'classic')
-    
-    Returns:
-        Comprehensive member analysis
-    """
-    try:
-        logger.info(f"Analyzing member {character_name} on {realm} ({game_version})")
-        
-        async with BlizzardAPIClient(game_version=game_version) as client:
-            # Get character profile
-            char_profile = await client.get_character_profile(realm, character_name)
-            
-            # Get equipment
-            char_equipment = await client.get_character_equipment(realm, character_name)
-            char_profile["equipment_summary"] = client._summarize_equipment(char_equipment)
-            
-            # Get achievements if detailed analysis
-            if analysis_depth in ["standard", "detailed"]:
-                try:
-                    char_achievements = await client.get_character_achievements(realm, character_name)
-                    char_profile["recent_achievements"] = char_achievements
-                except BlizzardAPIError:
-                    char_profile["recent_achievements"] = {}
-            
-            # Get mythic+ data if detailed analysis
-            if analysis_depth == "detailed":
-                try:
-                    mythic_data = await client.get_character_mythic_keystone(realm, character_name)
-                    char_profile["mythic_plus_data"] = mythic_data
-                except BlizzardAPIError:
-                    char_profile["mythic_plus_data"] = {}
-            
-            # Process through member analysis workflow
-            analysis_result = await guild_workflow.analyze_member(
-                char_profile, analysis_depth
-            )
-            
-            return {
-                "success": True,
-                "character_name": character_name,
-                "realm": realm,
-                "member_info": analysis_result["character_summary"],
-                "performance_metrics": analysis_result["performance_analysis"],
-                "equipment_analysis": analysis_result["equipment_insights"],
-                "progression_summary": analysis_result.get("progression_summary", {}),
-                "analysis_depth": analysis_depth
-            }
-            
-    except BlizzardAPIError as e:
-        logger.error(f"Blizzard API error: {e.message}")
-        return {"error": f"API Error: {e.message}"}
-    except Exception as e:
-        logger.error(f"Error analyzing member: {str(e)}")
-        return {"error": f"Member analysis failed: {str(e)}"}
-
 
 # Visualization Tools  
 @mcp.tool()
@@ -1064,7 +852,7 @@ async def get_auction_house_snapshot(
                 "success": True,
                 "realm": realm,
                 "connected_realm_id": connected_realm_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": utc_now_iso(),
                 "total_items": len(aggregated),
                 "items_returned": len(sorted_items),
                 "market_data": dict(sorted_items)
@@ -1741,7 +1529,7 @@ async def capture_economy_snapshot(
                         "realm": realm,
                         "region": region,
                         "connected_realm_id": connected_realm_id,
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "timestamp": utc_now_iso(),
                         "total_auctions": len(auctions),
                         "unique_items": len(item_stats),
                         "items": {}
@@ -1781,7 +1569,7 @@ async def capture_economy_snapshot(
                     # Update last snapshot time
                     await redis_client.set(
                         f"{snapshot_key}:last_update",
-                        datetime.now(timezone.utc).isoformat().encode()  # Encode to bytes
+                        utc_now_iso().encode()  # Encode to bytes
                     )
                     
                     logger.info(f"Captured economy snapshot for {realm}: {len(item_stats)} unique items")
@@ -1801,7 +1589,7 @@ async def capture_economy_snapshot(
             "snapshots_created": snapshots_created,
             "snapshots_skipped": snapshots_skipped,
             "results": results,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": utc_now_iso()
         }
         
     except Exception as e:
@@ -2111,7 +1899,7 @@ async def test_supabase_connection() -> Dict[str, Any]:
             id=str(uuid.uuid4()),
             session_id="test-session",
             activity_type="mcp_access",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now_iso(),
             tool_name="test_supabase_connection",
             request_data={"test": True},
             response_data={"test_status": "success"},
@@ -2191,7 +1979,7 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
             id=str(uuid.uuid4()),
             session_id="fastmcp-direct",
             activity_type="tool_call" if not error_message else "tool_error",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=utc_now_iso(),
             tool_name=tool_name,
             request_data=request_data,
             response_data=response_data,
