@@ -23,32 +23,35 @@ logger = get_logger(__name__)
 @mcp_tool()
 @with_supabase_logging
 async def get_market_data(
-    realm: str,
+    realm: Optional[str] = None,
     item_ids: Optional[List[int]] = None,
     include_trends: bool = False,
     trend_hours: int = 24,
     max_results: int = 100,
-    game_version: str = "retail"
+    game_version: str = "retail",
+    market_type: str = "auction_house"
 ) -> Dict[str, Any]:
     """
-    Get current auction house data with optional historical trends
+    Get current auction house or commodities market data with optional historical trends
 
     Returns current market snapshot. Optionally includes historical price trends
     from stored snapshots.
 
     Args:
-        realm: Server realm (e.g., 'stormrage', 'area-52')
+        realm: Server realm (e.g., 'stormrage', 'area-52'). Required for auction_house, ignored for commodities
         item_ids: Filter to specific items (None = top items by market value)
         include_trends: Add historical price data from stored snapshots
         trend_hours: Hours of history (if include_trends=True, max 720/30 days)
         max_results: Max items to return (if item_ids=None)
         game_version: WoW version ('retail' or 'classic')
+        market_type: Market type - 'auction_house' (realm-specific) or 'commodities' (region-wide)
 
     Returns:
         Current market snapshot + optional trend data:
         {
             "success": true,
-            "realm": "stormrage",
+            "realm": "stormrage" (or "region-wide" for commodities),
+            "market_type": "auction_house" or "commodities",
             "timestamp": "2025-11-06T...",
             "market_data": {
                 "123": {
@@ -68,17 +71,31 @@ async def get_market_data(
         }
     """
     try:
-        logger.info(f"Getting market data for realm {realm} ({game_version})")
+        logger.info(f"Getting {market_type} market data ({game_version})")
 
         async with BlizzardAPIClient(game_version=game_version) as client:
-            # Get connected realm ID
-            connected_realm_id = await get_connected_realm_id(realm, game_version, client)
+            # Determine which endpoint to use
+            if market_type == "commodities":
+                # Commodities are region-wide, no realm needed
+                logger.info("Fetching region-wide commodity auction data")
+                ah_data = await client.get_commodity_auctions()
+                realm_display = "region-wide"
+                connected_realm_id = None
+            else:
+                # Auction house is realm-specific
+                if not realm:
+                    return error_response("realm parameter is required for auction_house market type")
 
-            if not connected_realm_id:
-                return error_response(f"Could not find connected realm ID for realm {realm}")
+                logger.info(f"Fetching auction house data for realm {realm}")
+                # Get connected realm ID
+                connected_realm_id = await get_connected_realm_id(realm, game_version, client)
 
-            # Get current auction data
-            ah_data = await client.get_auction_house_data(connected_realm_id)
+                if not connected_realm_id:
+                    return error_response(f"Could not find connected realm ID for realm {realm}")
+
+                # Get current auction data
+                ah_data = await client.get_auction_house_data(connected_realm_id)
+                realm_display = realm
 
             if not ah_data or 'auctions' not in ah_data:
                 return error_response("No auction data available")
@@ -108,7 +125,8 @@ async def get_market_data(
 
             response = {
                 "success": True,
-                "realm": realm,
+                "realm": realm_display,
+                "market_type": market_type,
                 "connected_realm_id": connected_realm_id,
                 "timestamp": utc_now_iso(),
                 "total_items": len(ah_data['auctions']),
@@ -119,8 +137,10 @@ async def get_market_data(
             # Add historical trends if requested
             if include_trends:
                 item_ids_for_trends: List[str] = list(aggregated.keys()) if item_ids is None else [str(i) for i in item_ids]
+                # For commodities, use "commodities" as realm identifier
+                realm_for_trends = "commodities" if market_type == "commodities" else realm
                 trends = await _get_historical_trends(
-                    realm,
+                    realm_for_trends,
                     item_ids_for_trends,
                     trend_hours,
                     game_version
@@ -148,29 +168,32 @@ async def analyze_market(
     check_hours: int = 24,
     realms: Optional[List[str]] = None,
     max_results: int = 20,
-    game_version: str = "retail"
+    game_version: str = "retail",
+    market_type: str = "auction_house"
 ) -> Dict[str, Any]:
     """
     Perform market analysis operations
 
     Supports two operations:
-    - "opportunities": Find items with high profit margins (requires realm)
+    - "opportunities": Find items with high profit margins
     - "health_check": Check economy snapshot system health
 
     Args:
-        realm: Server realm (required for 'opportunities', optional for 'health_check')
+        realm: Server realm (required for auction_house opportunities, ignored for commodities)
         min_profit_margin: Minimum profit % for opportunities (default 20%)
         operation: 'opportunities' or 'health_check'
         check_hours: Hours to analyze for health check (default 24)
         realms: List of realms for health check (None = default set)
         max_results: Max opportunities to return
         game_version: WoW version ('retail' or 'classic')
+        market_type: Market type - 'auction_house' (realm-specific) or 'commodities' (region-wide)
 
     Returns:
         For operation='opportunities':
         {
             "success": true,
-            "realm": "stormrage",
+            "realm": "stormrage" (or "region-wide" for commodities),
+            "market_type": "auction_house" or "commodities",
             "opportunities": [
                 {
                     "item_id": 123,
@@ -197,7 +220,7 @@ async def analyze_market(
     try:
         if operation == "opportunities":
             return await _find_market_opportunities(
-                realm, min_profit_margin, max_results, game_version
+                realm, min_profit_margin, max_results, game_version, market_type
             )
         elif operation == "health_check":
             return await _check_snapshot_health(
@@ -421,24 +444,36 @@ async def _find_market_opportunities(
     realm: Optional[str],
     min_profit_margin: float,
     max_results: int,
-    game_version: str
+    game_version: str,
+    market_type: str = "auction_house"
 ) -> Dict[str, Any]:
     """Find items with high profit margins"""
-    if not realm:
-        return error_response("realm parameter required for opportunities operation")
-
     try:
-        logger.info(f"Finding market opportunities on {realm} ({game_version})")
+        logger.info(f"Finding market opportunities in {market_type} ({game_version})")
 
         async with BlizzardAPIClient(game_version=game_version) as client:
-            # Get connected realm ID
-            connected_realm_id = await get_connected_realm_id(realm, game_version, client)
+            # Determine which endpoint to use
+            if market_type == "commodities":
+                # Commodities are region-wide
+                logger.info("Fetching region-wide commodity auction data")
+                ah_data = await client.get_commodity_auctions()
+                realm_display = "region-wide"
+                connected_realm_id = None
+            else:
+                # Auction house is realm-specific
+                if not realm:
+                    return error_response("realm parameter required for auction_house opportunities")
 
-            if not connected_realm_id:
-                return error_response("Could not find connected realm ID")
+                logger.info(f"Fetching auction house data for realm {realm}")
+                # Get connected realm ID
+                connected_realm_id = await get_connected_realm_id(realm, game_version, client)
 
-            # Get current auction data
-            ah_data = await client.get_auction_house_data(connected_realm_id)
+                if not connected_realm_id:
+                    return error_response("Could not find connected realm ID")
+
+                # Get current auction data
+                ah_data = await client.get_auction_house_data(connected_realm_id)
+                realm_display = realm
 
             if not ah_data or 'auctions' not in ah_data:
                 return error_response("No auction data available")
@@ -475,7 +510,8 @@ async def _find_market_opportunities(
 
             return {
                 "success": True,
-                "realm": realm,
+                "realm": realm_display,
+                "market_type": market_type,
                 "connected_realm_id": connected_realm_id,
                 "opportunities_found": len(opportunities),
                 "opportunities": opportunities[:max_results],
