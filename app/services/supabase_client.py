@@ -44,14 +44,14 @@ class ActivityLogEntry:
 
 class SupabaseRealTimeClient:
     """Supabase client for real-time data streaming"""
-    
-    def __init__(self, url: str = None, key: str = None):
+
+    def __init__(self, url: Optional[str] = None, key: Optional[str] = None):
         self.url = url or os.getenv("SUPABASE_URL")
         # ONLY use service role key for server-side operations (bypasses RLS)
         service_key = os.getenv("SUPABASE_SERVICE_KEY")
         self.key = key or service_key
         self.client: Optional[AsyncClient] = None
-        self.channels = {}
+        self.channels: Dict[str, Any] = {}
 
         if not self.url or not self.key:
             raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required")
@@ -61,6 +61,9 @@ class SupabaseRealTimeClient:
     async def initialize(self) -> None:
         """Initialize the Supabase client"""
         try:
+            if not self.url or not self.key:
+                raise ValueError("URL and key are required")
+
             # For service role key, don't persist sessions or refresh tokens
             # These options are for user auth and will override the service role key
             self.client = await acreate_client(
@@ -92,7 +95,11 @@ class SupabaseRealTimeClient:
         try:
             if not self.client:
                 await self.initialize()
-            
+
+            if not self.client:
+                logger.error("Supabase client not initialized")
+                return False
+
             # Insert activity log into Supabase table
             result = await self.client.table("activity_logs").insert(asdict(log_entry)).execute()
             
@@ -125,6 +132,10 @@ class SupabaseRealTimeClient:
         try:
             if not self.client:
                 await self.initialize()
+
+            if not self.client:
+                logger.error("Supabase client not initialized")
+                return None
 
             # Check if user exists
             existing = await self.client.table("users").select("id").eq(
@@ -178,6 +189,10 @@ class SupabaseRealTimeClient:
             if not self.client:
                 await self.initialize()
 
+            if not self.client:
+                logger.error("Supabase client not initialized")
+                return None
+
             insert_data = {
                 "user_id": user_id,
                 "is_active": True,
@@ -209,6 +224,10 @@ class SupabaseRealTimeClient:
             if not self.client:
                 await self.initialize()
 
+            if not self.client:
+                logger.error("Supabase client not initialized")
+                return False
+
             await self.client.table("user_sessions").update({
                 "is_active": False,
                 "session_end": datetime.now(timezone.utc).isoformat()
@@ -226,7 +245,11 @@ class SupabaseRealTimeClient:
         try:
             if not self.client:
                 await self.initialize()
-            
+
+            if not self.client:
+                logger.error("Supabase client not initialized")
+                return
+
             channel = self.client.channel(
                 "activity-logs",
                 {"config": {"broadcast": {"ack": True, "self": False}}}

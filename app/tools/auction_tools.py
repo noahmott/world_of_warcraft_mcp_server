@@ -195,8 +195,8 @@ async def capture_economy_snapshot(
                     
                     results[realm] = {
                         "status": "success",
-                        "auctions": len(ah_data['auctions']),
-                        "unique_items": len(aggregated),
+                        "auctions": str(len(ah_data['auctions'])),
+                        "unique_items": str(len(aggregated)),
                         "timestamp": timestamp.isoformat()
                     }
                     snapshots_created += 1
@@ -255,8 +255,8 @@ async def get_economy_trends(
         
         # Limit hours to 30 days max
         hours = min(hours, 720)
-        
-        trends = {}
+
+        trends: Dict[str, Any] = {}
         snapshot_base_key = f"economy_snapshot:{game_version}:{region}:{realm.lower()}"
         
         # Get all snapshots for the time period
@@ -561,7 +561,7 @@ async def check_economy_snapshot_health(
             snapshots.sort()
             
             # Analyze snapshot health
-            health_data = {
+            health_data: Dict[str, Any] = {
                 "realm": realm,
                 "status": "unknown",
                 "last_update": None,

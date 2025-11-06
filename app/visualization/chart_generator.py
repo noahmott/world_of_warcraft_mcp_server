@@ -12,8 +12,8 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-import plotly.graph_objects as go
-import plotly.io as pio
+import plotly.graph_objects as go  # type: ignore[import-untyped]
+import plotly.io as pio  # type: ignore[import-untyped]
 
 from ..utils.wow_utils import get_localized_name, parse_class_info
 
