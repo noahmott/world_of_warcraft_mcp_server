@@ -23,28 +23,30 @@ logger = get_logger(__name__)
 @mcp_tool()
 @with_supabase_logging
 async def get_market_data(
+    market_type: str = "commodities",
     realm: Optional[str] = None,
     item_ids: Optional[List[int]] = None,
     include_trends: bool = False,
     trend_hours: int = 24,
     max_results: int = 100,
-    game_version: str = "retail",
-    market_type: str = "auction_house"
+    game_version: str = "retail"
 ) -> Dict[str, Any]:
     """
-    Get current auction house or commodities market data with optional historical trends
+    Get current market prices for WoW items (commodities or auction house)
 
-    Returns current market snapshot. Optionally includes historical price trends
-    from stored snapshots.
+    IMPORTANT: For commodities (ore, herbs, reagents), use market_type='commodities' - NO REALM NEEDED.
+    For auction house (gear, pets), use market_type='auction_house' and specify realm.
+
+    Returns current market snapshot with prices. Optionally includes historical trends.
 
     Args:
-        realm: Server realm (e.g., 'stormrage', 'area-52'). Required for auction_house, ignored for commodities
-        item_ids: Filter to specific items (None = top items by market value)
+        market_type: 'commodities' (region-wide: ore, herbs - DEFAULT) or 'auction_house' (realm-specific: gear, pets)
+        realm: Server realm (e.g., 'stormrage'). ONLY required if market_type='auction_house', otherwise leave empty
+        item_ids: Filter to specific items by ID (None = top items by market value)
         include_trends: Add historical price data from stored snapshots
         trend_hours: Hours of history (if include_trends=True, max 720/30 days)
         max_results: Max items to return (if item_ids=None)
         game_version: WoW version ('retail' or 'classic')
-        market_type: Market type - 'auction_house' (realm-specific) or 'commodities' (region-wide)
 
     Returns:
         Current market snapshot + optional trend data:
@@ -162,31 +164,34 @@ async def get_market_data(
 @mcp_tool()
 @with_supabase_logging
 async def analyze_market(
+    operation: str = "opportunities",
+    market_type: str = "commodities",
     realm: Optional[str] = None,
     min_profit_margin: float = 20.0,
-    operation: str = "opportunities",
     check_hours: int = 24,
     realms: Optional[List[str]] = None,
     max_results: int = 20,
-    game_version: str = "retail",
-    market_type: str = "auction_house"
+    game_version: str = "retail"
 ) -> Dict[str, Any]:
     """
-    Perform market analysis operations
+    Find profitable deals in WoW markets (commodities or auction house)
+
+    IMPORTANT: For commodities market queries (ore, herbs, reagents), use market_type='commodities' - NO REALM NEEDED.
+    For realm-specific auction house queries (gear, pets), use market_type='auction_house' and specify realm.
 
     Supports two operations:
-    - "opportunities": Find items with high profit margins
+    - "opportunities": Find items with high profit margins (profitable deals)
     - "health_check": Check economy snapshot system health
 
     Args:
-        realm: Server realm (required for auction_house opportunities, ignored for commodities)
+        operation: 'opportunities' (find deals) or 'health_check' (system status)
+        market_type: 'commodities' (region-wide: ore, herbs, etc - DEFAULT) or 'auction_house' (realm-specific: gear, pets)
+        realm: Server realm name (ONLY required if market_type='auction_house', otherwise leave empty)
         min_profit_margin: Minimum profit % for opportunities (default 20%)
-        operation: 'opportunities' or 'health_check'
         check_hours: Hours to analyze for health check (default 24)
         realms: List of realms for health check (None = default set)
         max_results: Max opportunities to return
         game_version: WoW version ('retail' or 'classic')
-        market_type: Market type - 'auction_house' (realm-specific) or 'commodities' (region-wide)
 
     Returns:
         For operation='opportunities':
