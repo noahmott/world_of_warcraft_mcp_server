@@ -21,6 +21,10 @@ class AuctionAggregatorService:
         """
         Aggregate raw auction data by item ID
 
+        Handles both auction house and commodities formats:
+        - Auction house: uses 'buyout' field
+        - Commodities: uses 'unit_price' field
+
         Returns dict of item_id -> aggregated metrics
         """
         from typing import Any, Set, List as ListType
@@ -30,24 +34,42 @@ class AuctionAggregatorService:
             'sellers': set(),
             'auctions': []
         })
-        
+
         for auction in auctions:
-            item_id = auction.get('item', {}).get('id', 0)
+            # Handle both formats: commodities use 'item' as direct ID, auction house uses nested 'item.id'
+            if isinstance(auction.get('item'), dict):
+                item_id = auction.get('item', {}).get('id', 0)
+            else:
+                item_id = auction.get('item', 0)
+
             if not item_id:
                 continue
-                
+
             quantity = auction.get('quantity', 1)
-            buyout = auction.get('buyout', 0)
-            
-            if buyout > 0 and quantity > 0:
+
+            # Commodities use 'unit_price', auction house uses 'buyout'
+            unit_price = auction.get('unit_price')
+            buyout = auction.get('buyout')
+
+            if unit_price is not None and unit_price > 0:
+                # Commodity format - already price per unit
+                price_per_unit = unit_price
+            elif buyout is not None and buyout > 0 and quantity > 0:
+                # Auction house format - calculate price per unit
                 price_per_unit = buyout / quantity
-                seller_id = auction.get('seller', {}).get('id', 'unknown')
-                
-                agg = item_aggregates[item_id]
-                agg['prices'].extend([price_per_unit] * quantity)  # Weight by quantity
-                agg['quantities'].append(quantity)
-                agg['sellers'].add(seller_id)
-                agg['auctions'].append(auction)
+            else:
+                continue
+
+            # For commodities, seller might not exist (region-wide market)
+            seller_id = auction.get('seller', {}).get('id') if isinstance(auction.get('seller'), dict) else auction.get('seller', 'unknown')
+            if seller_id is None:
+                seller_id = 'unknown'
+
+            agg = item_aggregates[item_id]
+            agg['prices'].extend([price_per_unit] * quantity)  # Weight by quantity
+            agg['quantities'].append(quantity)
+            agg['sellers'].add(seller_id)
+            agg['auctions'].append(auction)
         
         # Calculate final metrics
         results = {}
