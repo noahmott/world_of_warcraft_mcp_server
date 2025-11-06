@@ -586,7 +586,16 @@ class BlizzardAPIClient:
         """Get auction house data for a connected realm"""
         endpoint = f"/data/wow/connected-realm/{connected_realm_id}/auctions"
         return await self.make_request(endpoint)
-    
+
+    async def get_commodity_auctions(self) -> Dict[str, Any]:
+        """
+        Get commodity auction data (region-wide)
+        Commodities include: ores, herbs, gems, reagents, etc.
+        This endpoint returns ALL commodity auctions for the entire region
+        """
+        endpoint = "/data/wow/auctions/commodities"
+        return await self.make_request(endpoint)
+
     async def get_item_data(self, item_id: int) -> Dict[str, Any]:
         """Get item data by item ID"""
         endpoint = f"/data/wow/item/{item_id}"

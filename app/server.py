@@ -832,6 +832,90 @@ async def get_auction_house_snapshot(
 
 @mcp.tool()
 @with_supabase_logging
+async def get_commodity_prices(
+    item_search: Optional[str] = None,
+    game_version: str = "retail"
+) -> Dict[str, Any]:
+    """
+    Get current commodity prices from the region-wide commodity auction house.
+
+    Commodities are items sold region-wide (not realm-specific) and include:
+    - Ores and gems (Aqirite, Bismuth, Extravagant Emerald, etc.)
+    - Herbs and plants
+    - Crafting reagents
+    - Trade goods
+
+    Args:
+        item_search: Comma-separated item IDs (e.g., '210933,212505') or single item ID
+        game_version: WoW version ('retail' or 'classic')
+
+    Returns:
+        Dictionary of commodity prices with quantity available and unit price
+    """
+    try:
+        logger.info(f"Getting commodity prices ({game_version})")
+
+        async with BlizzardAPIClient(game_version=game_version) as client:
+            # Get commodity auction data
+            commodity_data = await client.get_commodity_auctions()
+
+            if not commodity_data or 'auctions' not in commodity_data:
+                return {"error": "No commodity data available"}
+
+            auctions = commodity_data['auctions']
+            logger.info(f"Retrieved {len(auctions)} commodity auctions")
+
+            # Build commodity map by item ID
+            commodity_map: Dict[int, Dict[str, Any]] = {}
+            for auction in auctions:
+                item_id = auction.get('item', {}).get('id')
+                if item_id:
+                    commodity_map[item_id] = {
+                        'item_id': item_id,
+                        'quantity': auction.get('quantity', 0),
+                        'unit_price': auction.get('unit_price', 0),
+                        'unit_price_gold': round(auction.get('unit_price', 0) / 10000, 2)
+                    }
+
+            # Filter by item search if provided
+            results = {}
+            if item_search:
+                # Parse comma-separated item IDs
+                if ',' in item_search:
+                    item_ids = [int(id.strip()) for id in item_search.split(',') if id.strip().isdigit()]
+                elif item_search.isdigit():
+                    item_ids = [int(item_search)]
+                else:
+                    return {"error": "item_search must be item ID(s), not item names"}
+
+                # Get requested items
+                for item_id in item_ids:
+                    if item_id in commodity_map:
+                        results[item_id] = commodity_map[item_id]
+
+                logger.info(f"Found {len(results)} of {len(item_ids)} requested commodity items")
+            else:
+                # Return all commodities (might be large!)
+                results = commodity_map
+
+            return {
+                "success": True,
+                "total_commodities": len(commodity_map),
+                "items_returned": len(results),
+                "game_version": game_version,
+                "commodities": results,
+                "note": "Commodity prices are region-wide, not realm-specific"
+            }
+
+    except BlizzardAPIError as e:
+        logger.error(f"Blizzard API error: {e.message}")
+        return {"error": f"API Error: {e.message}"}
+    except Exception as e:
+        logger.error(f"Error getting commodity prices: {str(e)}")
+        return {"error": f"Commodity price lookup failed: {str(e)}"}
+
+@mcp.tool()
+@with_supabase_logging
 async def get_character_details(
     realm: str,
     character_name: str,
