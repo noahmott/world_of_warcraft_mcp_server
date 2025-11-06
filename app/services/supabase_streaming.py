@@ -24,11 +24,11 @@ logger = logging.getLogger(__name__)
 class SupabaseStreamingService:
     """Service to stream activity logs and events to Supabase while keeping guild data in Redis"""
     
-    def __init__(self, redis_client: aioredis.Redis, supabase_client: SupabaseRealTimeClient = None):
+    def __init__(self, redis_client: aioredis.Redis, supabase_client: Optional[SupabaseRealTimeClient] = None):
         self.redis = redis_client
         self.supabase_client = supabase_client
         self.streaming_active = False
-        self.stream_tasks = []
+        self.stream_tasks: List[Any] = []
         
         # Only monitor activity logs and sessions for Supabase streaming
         # Guild data stays in Redis for performance
@@ -288,7 +288,7 @@ class SupabaseStreamingService:
     async def _monitor_daily_stats(self) -> None:
         """Monitor Redis for daily stats changes"""
         try:
-            last_stats = {}
+            last_stats: Dict[str, Any] = {}
             
             while self.streaming_active:
                 try:

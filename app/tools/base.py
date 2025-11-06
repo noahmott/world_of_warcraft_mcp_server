@@ -109,10 +109,10 @@ def with_supabase_logging(func: Callable) -> Callable:
     return wrapper
 
 
-async def log_to_supabase(tool_name: str, request_data: Dict[str, Any], 
-                         response_data: Dict[str, Any] = None, 
-                         error_message: str = None,
-                         duration_ms: float = None):
+async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
+                         response_data: Optional[Dict[str, Any]] = None,
+                         error_message: Optional[str] = None,
+                         duration_ms: Optional[float] = None):
     """Log activity to Supabase (imported from main module)"""
     try:
         if not supabase_client:

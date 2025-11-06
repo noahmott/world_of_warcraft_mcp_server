@@ -57,7 +57,7 @@ class RateLimiter:
     def __init__(self, max_requests: int = 100, time_window: int = 1):
         self.max_requests = max_requests
         self.time_window = time_window
-        self.requests = []
+        self.requests: List[datetime] = []
         self._lock = asyncio.Lock()
     
     async def acquire(self):
@@ -109,7 +109,7 @@ class BlizzardAPIClient:
         }
         
         # Cache for connected realm lookups
-        self._connected_realm_cache = {}
+        self._connected_realm_cache: Dict[str, int] = {}
         
     async def __aenter__(self):
         """Async context manager entry"""
@@ -147,12 +147,13 @@ class BlizzardAPIClient:
                     )
                 
                 token_data = await response.json()
-                self.access_token = token_data["access_token"]
+                access_token_str = token_data["access_token"]
+                self.access_token = access_token_str
                 expires_in = token_data.get("expires_in", 3600)
                 self.token_expires_at = datetime.now() + timedelta(seconds=expires_in - 60)  # 1 minute buffer
-                
+
                 logger.info("Successfully obtained Blizzard API access token")
-                return self.access_token
+                return access_token_str
                 
         except aiohttp.ClientError as e:
             raise BlizzardAPIError(f"Network error getting access token: {str(e)}")
@@ -441,9 +442,10 @@ class BlizzardAPIClient:
                 raise BlizzardAPIError("Need connected realm index for retail", 404)
             
             return result
-        except BlizzardAPIError as e:
+        except BlizzardAPIError as api_error:
             logger.info(f"Direct realm endpoint failed for {realm_slug}, trying connected realm index")
-            
+            error_status = getattr(api_error, 'status_code', None)
+
             # For retail, we need to get the connected realm index and search through it
             if self.game_version == "retail":
                 try:
@@ -537,7 +539,7 @@ class BlizzardAPIClient:
                     }
             
             # If that also fails and it's classic, try the old search endpoint
-            if self.game_version == "classic" and e.status_code == 404:
+            if self.game_version == "classic" and error_status == 404:
                 logger.info(f"Trying classic realm search for {realm_slug}")
                 search_endpoint = f"/data/wow/search/realm"
                 params = {

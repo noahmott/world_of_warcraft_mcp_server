@@ -69,7 +69,7 @@ def get_settings() -> Settings:
     Note:
         Uses lru_cache to ensure only one instance is created
     """
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
 
 
 # Global settings instance - use this for imports
