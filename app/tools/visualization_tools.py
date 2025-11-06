@@ -3,7 +3,6 @@ Visualization and chart generation tools for WoW Guild MCP Server
 """
 
 from typing import Dict, Any, List
-from fastmcp.utilities.types import Image
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
@@ -24,9 +23,9 @@ async def generate_raid_progress_chart(
     guild_name: str,
     raid_tier: str = "current",
     game_version: str = "retail"
-) -> Image:
+) -> str:
     """
-    Generate visual raid progression charts
+    Generate visual raid progression charts and upload to Supabase Storage
 
     Args:
         realm: Server realm
@@ -35,7 +34,7 @@ async def generate_raid_progress_chart(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Image object of the raid progression chart (renders inline in Claude)
+        Public URL to the chart image in Supabase Storage (click to view/download)
     """
     try:
         logger.info(f"Generating raid chart for {guild_name} on {realm} ({game_version})")
@@ -48,7 +47,7 @@ async def generate_raid_progress_chart(
                 guild_data, raid_tier
             )
             
-            return chart_data  # Image object
+            return chart_data  # Supabase Storage URL
             
     except BlizzardAPIError as e:
         logger.error(f"Blizzard API error: {e.message}")
@@ -78,7 +77,7 @@ async def compare_member_performance(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Comparison results with chart_data as Image object (renders inline in Claude)
+        Comparison results with chart_data as Supabase Storage URL (click to view/download)
     """
     try:
         logger.info(f"Comparing members {member_names} in {guild_name} ({game_version})")

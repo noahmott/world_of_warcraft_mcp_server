@@ -1,78 +1,90 @@
 """
-Image storage utility for serving generated charts via URLs
+Image storage utility for uploading charts to Supabase Storage
 """
 
 import os
 import uuid
-from pathlib import Path
 from typing import Optional
 import logging
+from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
 
 
-class ImageStorage:
-    """Store and serve generated chart images via URLs"""
+class SupabaseImageStorage:
+    """Upload and serve generated chart images via Supabase Storage"""
 
     def __init__(self):
-        # Use a temporary directory for storing images
-        self.storage_dir = Path("/tmp/chart_images")
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
+        # Initialize Supabase client
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-        # Get base URL from environment or use default
-        self.base_url = os.getenv("APP_BASE_URL", "https://wow-guild-mcp-server-7f17b3f6ea0a.herokuapp.com")
+        if not supabase_url or not supabase_key:
+            logger.warning("Supabase credentials not configured - image storage disabled")
+            self.supabase: Optional[Client] = None
+        else:
+            self.supabase = create_client(supabase_url, supabase_key)
+            self.bucket_name = "charts"  # Supabase storage bucket name
 
-    def save_image(self, image_bytes: bytes, extension: str = "png") -> str:
+    async def upload_chart(self, image_bytes: bytes, filename: str = None, content_type: str = "image/png") -> Optional[str]:
         """
-        Save image bytes to storage and return URL
+        Upload chart image to Supabase Storage and return public URL
 
         Args:
             image_bytes: Raw image bytes
-            extension: File extension (png, jpg, etc.)
+            filename: Optional filename (generates UUID if not provided)
+            content_type: MIME type of the image
 
         Returns:
-            Public URL to access the image
+            Public URL to access the image, or None if upload fails
         """
+        if not self.supabase:
+            logger.error("Supabase client not initialized")
+            return None
+
         try:
-            # Generate unique filename
-            filename = f"{uuid.uuid4()}.{extension}"
-            filepath = self.storage_dir / filename
+            # Generate unique filename if not provided
+            if not filename:
+                filename = f"chart_{uuid.uuid4()}.png"
 
-            # Save image
-            with open(filepath, 'wb') as f:
-                f.write(image_bytes)
+            # Upload to Supabase Storage
+            response = self.supabase.storage.from_(self.bucket_name).upload(
+                path=filename,
+                file=image_bytes,
+                file_options={"content-type": content_type}
+            )
 
-            # Return URL
-            url = f"{self.base_url}/static/charts/{filename}"
-            logger.info(f"Saved chart image: {url}")
-            return url
+            # Get public URL
+            public_url = self.supabase.storage.from_(self.bucket_name).get_public_url(filename)
+
+            logger.info(f"Uploaded chart to Supabase: {public_url}")
+            return public_url
 
         except Exception as e:
-            logger.error(f"Error saving image: {str(e)}")
-            raise
+            logger.error(f"Error uploading chart to Supabase: {str(e)}")
+            return None
 
-    def cleanup_old_images(self, max_age_hours: int = 24):
+    async def delete_chart(self, filename: str) -> bool:
         """
-        Clean up old chart images
+        Delete a chart from Supabase Storage
 
         Args:
-            max_age_hours: Delete images older than this many hours
+            filename: Name of the file to delete
+
+        Returns:
+            True if successful, False otherwise
         """
-        import time
+        if not self.supabase:
+            return False
 
         try:
-            current_time = time.time()
-            max_age_seconds = max_age_hours * 3600
-
-            for filepath in self.storage_dir.glob("*.png"):
-                file_age = current_time - filepath.stat().st_mtime
-                if file_age > max_age_seconds:
-                    filepath.unlink()
-                    logger.info(f"Deleted old chart image: {filepath.name}")
-
+            self.supabase.storage.from_(self.bucket_name).remove([filename])
+            logger.info(f"Deleted chart from Supabase: {filename}")
+            return True
         except Exception as e:
-            logger.error(f"Error cleaning up images: {str(e)}")
+            logger.error(f"Error deleting chart from Supabase: {str(e)}")
+            return False
 
 
 # Global instance
-image_storage = ImageStorage()
+image_storage = SupabaseImageStorage()

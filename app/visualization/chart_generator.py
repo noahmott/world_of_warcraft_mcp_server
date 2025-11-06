@@ -14,9 +14,9 @@ import seaborn as sns
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 import plotly.io as pio  # type: ignore[import-untyped]
-from fastmcp.utilities.types import Image
 
 from ..utils.wow_utils import get_localized_name, parse_class_info
+from ..utils.image_storage import image_storage
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class ChartGenerator:
             "Mythic": "#FF8000"
         }
     
-    async def create_raid_progress_chart(self, guild_data: Dict[str, Any], raid_tier: str = "current") -> Image:
+    async def create_raid_progress_chart(self, guild_data: Dict[str, Any], raid_tier: str = "current") -> str:
         """
         Create raid progression chart
         
@@ -118,22 +118,26 @@ class ChartGenerator:
             
             plt.tight_layout()
             
-            # Convert to Image object
+            # Generate image bytes
             buffer = io.BytesIO()
             plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
             plt.close()
             buffer.seek(0)
             img_bytes = buffer.read()
 
-            # Return FastMCP Image object
-            logger.info(f"Generated raid progress chart for {len(raid_data)} raids")
-            return Image(data=img_bytes, format="png")
+            # Upload to Supabase and return URL
+            url = await image_storage.upload_chart(img_bytes, filename=f"raid_progress_{guild_data.get('name', 'unknown')}.png")
+            if url:
+                logger.info(f"Generated raid progress chart for {len(raid_data)} raids: {url}")
+                return url
+            else:
+                return "Error: Failed to upload chart to storage"
             
         except Exception as e:
             logger.error(f"Error creating raid progress chart: {str(e)}")
             return await self._create_error_chart(f"Error generating chart: {str(e)}")
     
-    async def create_member_comparison_chart(self, member_data: List[Dict[str, Any]], metric: str) -> Image:
+    async def create_member_comparison_chart(self, member_data: List[Dict[str, Any]], metric: str) -> str:
         """
         Create member comparison chart
         
@@ -204,16 +208,20 @@ class ChartGenerator:
             
             plt.tight_layout()
             
-            # Convert to Image object
+            # Generate image bytes
             buffer = io.BytesIO()
             plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
             plt.close()
             buffer.seek(0)
             img_bytes = buffer.read()
 
-            # Return FastMCP Image object
-            logger.info(f"Generated member comparison chart for {len(member_data)} members")
-            return Image(data=img_bytes, format="png")
+            # Upload to Supabase and return URL
+            url = await image_storage.upload_chart(img_bytes, filename=f"member_comparison_{metric}.png")
+            if url:
+                logger.info(f"Generated member comparison chart for {len(member_data)} members: {url}")
+                return url
+            else:
+                return "Error: Failed to upload chart to storage"
             
         except Exception as e:
             logger.error(f"Error creating member comparison chart: {str(e)}")
@@ -266,11 +274,16 @@ class ChartGenerator:
                 font={"color": "white"}
             )
             
-            # Convert to Image object
+            # Generate image bytes
             img_bytes = pio.to_image(fig, format="png", width=800, height=600)
 
-            logger.info(f"Generated class distribution chart for {len(class_counts)} classes")
-            return Image(data=img_bytes, format="png")
+            # Upload to Supabase and return URL
+            url = await image_storage.upload_chart(img_bytes, filename=f"class_distribution.png")
+            if url:
+                logger.info(f"Generated class distribution chart for {len(class_counts)} classes: {url}")
+                return url
+            else:
+                return "Error: Failed to upload chart to storage"
             
         except Exception as e:
             logger.error(f"Error creating class distribution chart: {str(e)}")
@@ -320,11 +333,16 @@ class ChartGenerator:
                 font={"color": "white"}
             )
             
-            # Convert to Image object
+            # Generate image bytes
             img_bytes = pio.to_image(fig, format="png", width=800, height=600)
 
-            logger.info(f"Generated level distribution chart for {len(member_data)} members")
-            return Image(data=img_bytes, format="png")
+            # Upload to Supabase and return URL
+            url = await image_storage.upload_chart(img_bytes, filename=f"level_distribution.png")
+            if url:
+                logger.info(f"Generated level distribution chart for {len(member_data)} members: {url}")
+                return url
+            else:
+                return "Error: Failed to upload chart to storage"
             
         except Exception as e:
             logger.error(f"Error creating level distribution chart: {str(e)}")
@@ -346,7 +364,7 @@ class ChartGenerator:
             }
         ]
     
-    async def _create_no_data_chart(self, message: str) -> Image:
+    async def _create_no_data_chart(self, message: str) -> str:
         """Create a chart indicating no data available"""
         fig, ax = plt.subplots(figsize=(8, 4))
         
@@ -358,15 +376,18 @@ class ChartGenerator:
         ax.set_ylim(0, 1)
         ax.axis('off')
         
-        # Convert to Image object
+        # Generate image bytes
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
         plt.close()
         buffer.seek(0)
         img_bytes = buffer.read()
-        return Image(data=img_bytes, format="png")
 
-    async def _create_error_chart(self, error_message: str) -> Image:
+        # Upload to Supabase and return URL
+        url = await image_storage.upload_chart(img_bytes, filename=f"no_data.png")
+        return url if url else "Error: No data available and failed to upload error chart"
+
+    async def _create_error_chart(self, error_message: str) -> str:
         """Create a chart indicating an error occurred"""
         fig, ax = plt.subplots(figsize=(8, 4))
 
@@ -378,10 +399,13 @@ class ChartGenerator:
         ax.set_ylim(0, 1)
         ax.axis('off')
 
-        # Convert to Image object
+        # Generate image bytes
         buffer = io.BytesIO()
         plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
         plt.close()
         buffer.seek(0)
         img_bytes = buffer.read()
-        return Image(data=img_bytes, format="png")
+
+        # Upload to Supabase and return URL
+        url = await image_storage.upload_chart(img_bytes, filename=f"error.png")
+        return url if url else f"Error: {error_message} (and failed to upload error chart)"
