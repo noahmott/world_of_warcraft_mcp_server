@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientResponseError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import json
 from urllib.parse import quote
@@ -30,6 +30,7 @@ KNOWN_RETAIL_REALMS = {
     "frostmourne": 3725,
     "barthilas": 3723,
     "ragnaros": 3726,
+    "frostwolf": 127,
     
     # EU Realms  
     "draenor": 1403,
@@ -45,10 +46,10 @@ KNOWN_RETAIL_REALMS = {
 
 class BlizzardAPIError(Exception):
     """Custom exception for Blizzard API errors"""
-    def __init__(self, message: str, status_code: Optional[int] = None, details: Optional[Dict] = None):
-        self.message = message
-        self.status_code = status_code
-        self.details = details or {}
+    def __init__(self, message: str, status_code: Optional[int] = None, details: Optional[Dict[str, Any]] = None):
+        self.message: str = message
+        self.status_code: Optional[int] = status_code
+        self.details: Dict[str, Any] = details or {}
         super().__init__(self.message)
 
 
@@ -57,7 +58,7 @@ class RateLimiter:
     def __init__(self, max_requests: int = 100, time_window: int = 1):
         self.max_requests = max_requests
         self.time_window = time_window
-        self.requests: List[datetime] = []
+        self.requests = []
         self._lock = asyncio.Lock()
     
     async def acquire(self):
@@ -82,22 +83,24 @@ class BlizzardAPIClient:
     AUTH_URL = "https://oauth.battle.net/token"
     
     def __init__(self, game_version: Optional[str] = None):
-        from ..core.config import settings
+        client_id = os.getenv("BLIZZARD_CLIENT_ID")
+        client_secret = os.getenv("BLIZZARD_CLIENT_SECRET")
 
-        self.client_id = settings.blizzard_client_id
-        self.client_secret = settings.blizzard_client_secret
-        self.region = settings.blizzard_region
-        self.locale = settings.blizzard_locale
-        self.game_version = (game_version or settings.wow_version).lower()  # "retail" or "classic"
-        
+        if not client_id or not client_secret:
+            raise ValueError("BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET must be set")
+
+        # Now we know these are not None
+        self.client_id: str = client_id
+        self.client_secret: str = client_secret
+        self.region = os.getenv("BLIZZARD_REGION", "us")
+        self.locale = os.getenv("BLIZZARD_LOCALE", "en_US")
+        self.game_version = (game_version or os.getenv("WOW_VERSION", "classic")).lower()  # "retail" or "classic"
+
         # Dynamic base URL based on region
         self.base_url = f"https://{self.region}.api.blizzard.com"
-        
-        if not self.client_id or not self.client_secret:
-            raise ValueError("BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET must be set")
-        
-        self.access_token: Optional[str] = None
-        self.token_expires_at: Optional[datetime] = None
+
+        self.access_token = None
+        self.token_expires_at = None
         self.session: Optional[ClientSession] = None
         self.rate_limiter = RateLimiter(100, 1)  # 100 requests per second
         
@@ -109,7 +112,7 @@ class BlizzardAPIClient:
         }
         
         # Cache for connected realm lookups
-        self._connected_realm_cache: Dict[str, Dict[str, Any]] = {}
+        self._connected_realm_cache = {}
         
     async def __aenter__(self):
         """Async context manager entry"""
@@ -122,7 +125,7 @@ class BlizzardAPIClient:
         self.session = aiohttp.ClientSession(timeout=timeout)
         return self
     
-    async def __aexit__(self, _exc_type, _exc_val, _exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
         if self.session:
             await self.session.close()
@@ -147,13 +150,12 @@ class BlizzardAPIClient:
                     )
                 
                 token_data = await response.json()
-                access_token_str = token_data["access_token"]
-                self.access_token = access_token_str
+                self.access_token = token_data["access_token"]
                 expires_in = token_data.get("expires_in", 3600)
                 self.token_expires_at = datetime.now() + timedelta(seconds=expires_in - 60)  # 1 minute buffer
-
+                
                 logger.info("Successfully obtained Blizzard API access token")
-                return access_token_str
+                return self.access_token
                 
         except aiohttp.ClientError as e:
             raise BlizzardAPIError(f"Network error getting access token: {str(e)}")
@@ -183,7 +185,7 @@ class BlizzardAPIClient:
             
         except BlizzardAPIError as e:
             # If we get a 403 and haven't tried region detection yet, try the other region
-            if e.status_code == 403 and not detected_region:
+            if e.status_code is not None and e.status_code == 403 and not detected_region:
                 logger.warning(f"403 error with {self.region.upper()} region, trying alternate region")
                 alternate_region = 'eu' if self.region == 'us' else 'us'
                 try:
@@ -442,10 +444,9 @@ class BlizzardAPIClient:
                 raise BlizzardAPIError("Need connected realm index for retail", 404)
             
             return result
-        except BlizzardAPIError as api_error:
+        except BlizzardAPIError as e:
             logger.info(f"Direct realm endpoint failed for {realm_slug}, trying connected realm index")
-            error_status = getattr(api_error, 'status_code', None)
-
+            
             # For retail, we need to get the connected realm index and search through it
             if self.game_version == "retail":
                 try:
@@ -489,8 +490,8 @@ class BlizzardAPIClient:
                                         }
                                         self._connected_realm_cache[realm_slug.lower()] = result
                                         return result
-                            except Exception as e:
-                                logger.warning(f"Known realm ID {cr_id} didn't work for {realm_slug}: {e}")
+                            except Exception as inner_e:
+                                logger.warning(f"Known realm ID {cr_id} didn't work for {realm_slug}: {inner_e}")
                         
                         # If known ID didn't work, search through all connected realms
                         for cr_ref in index_results['connected_realms']:
@@ -539,7 +540,7 @@ class BlizzardAPIClient:
                     }
             
             # If that also fails and it's classic, try the old search endpoint
-            if self.game_version == "classic" and error_status == 404:
+            if self.game_version == "classic" and e.status_code is not None and e.status_code == 404:
                 logger.info(f"Trying classic realm search for {realm_slug}")
                 search_endpoint = f"/data/wow/search/realm"
                 params = {
@@ -602,7 +603,7 @@ class BlizzardAPIClient:
             guild_roster = await self.get_guild_roster(realm, guild_name)
         except BlizzardAPIError as e:
             logger.error(f"Failed to get guild data: {e.message}")
-            if e.status_code == 404:
+            if e.status_code is not None and e.status_code == 404:
                 raise BlizzardAPIError(f"Guild '{guild_name}' not found on realm '{realm}'", status_code=404)
             raise
         
