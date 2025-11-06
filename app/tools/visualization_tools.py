@@ -44,9 +44,9 @@ async def generate_raid_progress_chart(
             
             # Generate raid progression chart
             chart_data = await chart_generator.create_raid_progress_chart(
-                guild_data, raid_tier
+                guild_data, raid_tier, guild_name=guild_name
             )
-            
+
             return chart_data  # Supabase Storage URL
             
     except BlizzardAPIError as e:

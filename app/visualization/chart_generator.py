@@ -58,14 +58,15 @@ class ChartGenerator:
             "Mythic": "#FF8000"
         }
     
-    async def create_raid_progress_chart(self, guild_data: Dict[str, Any], raid_tier: str = "current") -> str:
+    async def create_raid_progress_chart(self, guild_data: Dict[str, Any], raid_tier: str = "current", guild_name: Optional[str] = None) -> str:
         """
         Create raid progression chart
-        
+
         Args:
             guild_data: Guild data from Blizzard API
             raid_tier: Raid tier to analyze
-        
+            guild_name: Optional guild name for filename
+
         Returns:
             Base64 encoded PNG image
         """
@@ -126,7 +127,11 @@ class ChartGenerator:
             img_bytes = buffer.read()
 
             # Upload to Supabase and return URL
-            url = await image_storage.upload_chart(img_bytes, filename=f"raid_progress_{guild_data.get('name', 'unknown')}.png")
+            # Use provided guild_name parameter, fall back to guild_info name, then 'unknown'
+            name_for_file = guild_name or guild_data.get('guild_info', {}).get('name', 'unknown')
+            # Sanitize filename (remove spaces, special chars)
+            safe_name = name_for_file.lower().replace(' ', '-').replace("'", '')
+            url = await image_storage.upload_chart(img_bytes, filename=f"raid_progress_{safe_name}.png")
             if url:
                 logger.info(f"Generated raid progress chart for {len(raid_data)} raids: {url}")
                 return url
