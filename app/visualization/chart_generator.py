@@ -6,6 +6,7 @@ import io
 import base64
 import logging
 import os
+import uuid
 from typing import Dict, Any, List, Optional
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
@@ -60,7 +61,7 @@ class ChartGenerator:
     
     async def create_raid_progress_chart(self, guild_data: Dict[str, Any], raid_tier: str = "current", guild_name: Optional[str] = None) -> str:
         """
-        Create raid progression chart
+        Create interactive raid progression chart using Plotly
 
         Args:
             guild_data: Guild data from Blizzard API
@@ -68,76 +69,99 @@ class ChartGenerator:
             guild_name: Optional guild name for filename
 
         Returns:
-            Base64 encoded PNG image
+            Public URL to interactive HTML chart
         """
         try:
             # Extract guild achievements for raid progress
             achievements = guild_data.get("guild_achievements", {})
             guild_info = guild_data.get("guild_info", {})
-            
-            # Mock raid progress data (would be extracted from achievements in real implementation)
+
+            # Extract raid progress data
             raid_data = self._extract_raid_progress(achievements, raid_tier)
-            
+
             if not raid_data:
                 return await self._create_no_data_chart("No raid progression data available")
-            
-            # Create figure with subplots
-            fig, axes = plt.subplots(len(raid_data), 1, figsize=(10, 3 * len(raid_data)))
-            if len(raid_data) == 1:
-                axes = [axes]  # Make it iterable
-            
-            fig.suptitle(f"Raid Progression - {get_localized_name(guild_info)}", 
-                        fontsize=16, color='white')
-            
-            for i, (raid, ax) in enumerate(zip(raid_data, axes)):
+
+            # Create Plotly figure with subplots
+            from plotly.subplots import make_subplots
+
+            fig = make_subplots(
+                rows=len(raid_data),
+                cols=1,
+                subplot_titles=[f"{raid['name']} - {raid['tier']}" for raid in raid_data],
+                vertical_spacing=0.15
+            )
+
+            guild_display_name = guild_name or get_localized_name(guild_info)
+
+            for i, raid in enumerate(raid_data, 1):
                 difficulties = raid.get("difficulties", [])
-                
+
                 if difficulties:
                     x_labels = [d["difficulty"] for d in difficulties]
                     y_values = [d["bosses_killed"] for d in difficulties]
                     max_bosses = [d["total_bosses"] for d in difficulties]
                     colors = [self.difficulty_colors.get(d, "#CCCCCC") for d in x_labels]
-                    
-                    # Create bar chart
-                    bars = ax.bar(x_labels, y_values, color=colors)
-                    
-                    # Add text labels on bars
-                    for bar, killed, total in zip(bars, y_values, max_bosses):
-                        height = bar.get_height()
-                        ax.text(bar.get_x() + bar.get_width()/2., height,
-                               f'{killed}/{total}',
-                               ha='center', va='bottom', color='white')
-                    
-                    # Add max boss lines
-                    for j, max_boss in enumerate(max_bosses):
-                        ax.axhline(y=max_boss, color='red', linestyle='--', alpha=0.5)
-                    
-                    ax.set_title(f"{raid['name']} - {raid['tier']}", color='white')
-                    ax.set_ylabel('Bosses Killed', color='white')
-                    ax.set_ylim(0, max(max_bosses) * 1.1 if max_bosses else 10)
-                    ax.tick_params(colors='white')
-            
-            plt.tight_layout()
-            
-            # Generate image bytes
-            buffer = io.BytesIO()
-            plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
-            plt.close()
-            buffer.seek(0)
-            img_bytes = buffer.read()
 
-            # Upload to Supabase and return URL
-            # Use provided guild_name parameter, fall back to guild_info name, then 'unknown'
-            name_for_file = guild_name or guild_data.get('guild_info', {}).get('name', 'unknown')
-            # Sanitize filename (remove spaces, special chars)
-            safe_name = name_for_file.lower().replace(' ', '-').replace("'", '')
-            url = await image_storage.upload_chart(img_bytes, filename=f"raid_progress_{safe_name}.png")
+                    # Add bar chart
+                    fig.add_trace(
+                        go.Bar(
+                            x=x_labels,
+                            y=y_values,
+                            marker_color=colors,
+                            text=[f"{killed}/{total}" for killed, total in zip(y_values, max_bosses)],
+                            textposition='outside',
+                            name=raid['name'],
+                            hovertemplate='<b>%{x}</b><br>Bosses Killed: %{y}<br><extra></extra>',
+                            showlegend=False
+                        ),
+                        row=i, col=1
+                    )
+
+                    # Add max boss reference lines
+                    for x_idx, max_boss in enumerate(max_bosses):
+                        fig.add_hline(
+                            y=max_boss,
+                            line_dash="dash",
+                            line_color="red",
+                            opacity=0.5,
+                            row=i, col=1
+                        )
+
+            # Update layout
+            fig.update_layout(
+                title={
+                    "text": f"Raid Progression - {guild_display_name}",
+                    "x": 0.5,
+                    "xanchor": "center",
+                    "font": {"size": 24, "color": "white"}
+                },
+                template="plotly_dark",
+                height=400 * len(raid_data),
+                showlegend=False,
+                font={"color": "white"}
+            )
+
+            # Update y-axes
+            fig.update_yaxes(title_text="Bosses Killed", color="white")
+
+            # Generate HTML
+            html_content = pio.to_html(fig, include_plotlyjs='cdn', full_html=True)
+
+            # Upload to Supabase and return URL with unique identifier
+            safe_name = guild_name.lower().replace(' ', '-').replace("'", '') if guild_name else 'guild'
+            unique_id = uuid.uuid4().hex[:8]
+            url = await image_storage.upload_html(
+                html_content,
+                filename=f"raid_progress_{safe_name}_{unique_id}.html"
+            )
+
             if url:
-                logger.info(f"Generated raid progress chart for {len(raid_data)} raids: {url}")
+                logger.info(f"Generated interactive raid progress chart for {len(raid_data)} raids: {url}")
                 return url
             else:
                 return "Error: Failed to upload chart to storage"
-            
+
         except Exception as e:
             logger.error(f"Error creating raid progress chart: {str(e)}")
             return await self._create_error_chart(f"Error generating chart: {str(e)}")
@@ -355,19 +379,103 @@ class ChartGenerator:
     
     def _extract_raid_progress(self, achievements: Dict[str, Any], raid_tier: str) -> List[Dict[str, Any]]:
         """Extract raid progress from achievement data"""
-        # Mock implementation - would parse actual achievement data
-        return [
-            {
-                "name": "Amirdrassil, the Dream's Hope",
-                "tier": "Dragonflight",
-                "difficulties": [
-                    {"difficulty": "LFR", "bosses_killed": 9, "total_bosses": 9},
-                    {"difficulty": "Normal", "bosses_killed": 7, "total_bosses": 9},
-                    {"difficulty": "Heroic", "bosses_killed": 4, "total_bosses": 9},
-                    {"difficulty": "Mythic", "bosses_killed": 1, "total_bosses": 9},
-                ]
+        # Map of raid tiers to their achievements
+        RAID_ACHIEVEMENT_MAP = {
+            "current": {
+                "Nerub-ar Palace": {
+                    "tier": "The War Within",
+                    "achievements": {"LFR": 40243, "Normal": 40244, "Heroic": 40245, "Mythic": 40246}
+                }
+            },
+            "war-within": {
+                "Nerub-ar Palace": {
+                    "tier": "The War Within",
+                    "achievements": {"LFR": 40243, "Normal": 40244, "Heroic": 40245, "Mythic": 40246}
+                }
+            },
+            "dragonflight": {
+                "Amirdrassil, the Dream's Hope": {
+                    "tier": "Dragonflight S3",
+                    "achievements": {"LFR": 19320, "Normal": 19331, "Heroic": 19332, "Mythic": 19333}
+                },
+                "Aberrus, the Shadowed Crucible": {
+                    "tier": "Dragonflight S2",
+                    "achievements": {"LFR": 18151, "Normal": 18160, "Heroic": 18161, "Mythic": 18162}
+                },
+                "Vault of the Incarnates": {
+                    "tier": "Dragonflight S1",
+                    "achievements": {"LFR": 16335, "Normal": 16343, "Heroic": 16345, "Mythic": 16346}
+                }
+            },
+            "shadowlands": {
+                "Sepulcher of the First Ones": {
+                    "tier": "Shadowlands S4",
+                    "achievements": {"LFR": 15416, "Normal": 15417, "Heroic": 15418, "Mythic": 15419}
+                },
+                "Sanctum of Domination": {
+                    "tier": "Shadowlands S2",
+                    "achievements": {"LFR": 15126, "Normal": 15134, "Heroic": 15135, "Mythic": 15136}
+                },
+                "Castle Nathria": {
+                    "tier": "Shadowlands S1",
+                    "achievements": {"LFR": 14715, "Normal": 14717, "Heroic": 14718, "Mythic": 14719}
+                }
             }
-        ]
+        }
+
+        # Get raids for the requested tier
+        raids_to_check = RAID_ACHIEVEMENT_MAP.get(raid_tier.lower(), RAID_ACHIEVEMENT_MAP.get("current", {}))
+
+        raid_progress = []
+        achievement_list = achievements.get("achievements", [])
+
+        for raid_name, raid_info in raids_to_check.items():
+            raid_difficulties = []
+
+            for difficulty, ach_id in raid_info["achievements"].items():
+                # Find this achievement in the guild's achievements
+                for ach in achievement_list:
+                    if ach.get("id") == ach_id:
+                        # Check completion status
+                        criteria = ach.get("criteria", {})
+                        completed = criteria.get("is_completed", False)
+
+                        # Count bosses from child criteria
+                        child_criteria = criteria.get("child_criteria", [])
+                        bosses_killed = sum(1 for child in child_criteria if child.get("is_completed", False))
+                        total_bosses = len(child_criteria) if child_criteria else 0
+
+                        # If no child criteria but achievement is complete, assume full clear
+                        if total_bosses == 0 and completed:
+                            # Estimate boss counts for raids
+                            boss_estimates = {
+                                "Nerub-ar Palace": 8,
+                                "Amirdrassil, the Dream's Hope": 9,
+                                "Aberrus, the Shadowed Crucible": 9,
+                                "Vault of the Incarnates": 8,
+                                "Sepulcher of the First Ones": 11,
+                                "Sanctum of Domination": 10,
+                                "Castle Nathria": 10
+                            }
+                            total_bosses = boss_estimates.get(raid_name, 8)
+                            bosses_killed = total_bosses
+
+                        raid_difficulties.append({
+                            "difficulty": difficulty,
+                            "bosses_killed": bosses_killed,
+                            "total_bosses": total_bosses
+                        })
+                        break
+
+            # Only add raid if we found any progress
+            if raid_difficulties:
+                raid_progress.append({
+                    "name": raid_name,
+                    "tier": raid_info["tier"],
+                    "difficulties": raid_difficulties
+                })
+
+        return raid_progress
     
     async def _create_no_data_chart(self, message: str) -> str:
         """Create a chart indicating no data available"""

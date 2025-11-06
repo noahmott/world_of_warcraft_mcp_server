@@ -64,6 +64,46 @@ class SupabaseImageStorage:
             logger.error(f"Error uploading chart to Supabase: {str(e)}")
             return None
 
+    async def upload_html(self, html_content: str, filename: str = None) -> Optional[str]:
+        """
+        Upload HTML content to Supabase Storage and return public URL
+
+        Args:
+            html_content: HTML string content
+            filename: Optional filename (generates UUID if not provided)
+
+        Returns:
+            Public URL to access the HTML, or None if upload fails
+        """
+        if not self.supabase:
+            logger.error("Supabase client not initialized")
+            return None
+
+        try:
+            # Generate unique filename if not provided
+            if not filename:
+                filename = f"chart_{uuid.uuid4()}.html"
+
+            # Convert string to bytes
+            html_bytes = html_content.encode('utf-8')
+
+            # Upload to Supabase Storage
+            response = self.supabase.storage.from_(self.bucket_name).upload(
+                path=filename,
+                file=html_bytes,
+                file_options={"content-type": "text/html"}
+            )
+
+            # Get public URL
+            public_url = self.supabase.storage.from_(self.bucket_name).get_public_url(filename)
+
+            logger.info(f"Uploaded HTML chart to Supabase: {public_url}")
+            return public_url
+
+        except Exception as e:
+            logger.error(f"Error uploading HTML to Supabase: {str(e)}")
+            return None
+
     async def delete_chart(self, filename: str) -> bool:
         """
         Delete a chart from Supabase Storage
