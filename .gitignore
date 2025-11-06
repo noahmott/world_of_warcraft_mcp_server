@@ -79,6 +79,10 @@ nul
 !package.json
 !tsconfig.json
 
+# Config files
+mypy.ini
+*.ini
+
 # Debug and utility files
 debug_*.py
 check_*.py

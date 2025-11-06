@@ -1,15 +1,14 @@
 # WoW Guild Analytics MCP Server
 
-![MCPServer](https://badge.mcpx.dev?type=server)
-![FastMCP](https://img.shields.io/pypi/v/fastmcp.svg?logo=python&logoColor=white)
-![Python](https://img.shields.io/badge/python-3.13-blue.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688.svg?logo=fastapi&logoColor=white)
-![Battle.net API](https://img.shields.io/badge/Battle.net-API-148EFF.svg?logo=battle.net&logoColor=white)
-![Redis](https://img.shields.io/badge/redis-6.2-DC382D.svg?logo=redis&logoColor=white)
-![Heroku](https://img.shields.io/badge/heroku-deployed-430098.svg?logo=heroku&logoColor=white)
-![Supabase](https://img.shields.io/badge/supabase-enabled-3ECF8E.svg?logo=supabase&logoColor=white)
-<a href="https://discord.com/users/479379710766481436"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?&style=flat&logo=discord&logoColor=white" /></a>
-<a href="https://linkedin.com/in/noahmott"><img alt="LinkedIn" src="https://img.shields.io/badge/linkedin%20-%230077B5.svg?&style=flat&logo=linkedin&logoColor=white"/></a>
+![MCPServer](https://badge.mcpx.dev?type=server)&nbsp;
+![Python](https://img.shields.io/badge/-Python-05122A?style=flat&logo=python)&nbsp;
+![FastAPI](https://img.shields.io/badge/-FastAPI-05122A?style=flat&logo=fastapi)&nbsp;
+![Battle.net](https://img.shields.io/badge/-Battle.net-05122A?style=flat&logo=battle.net&logoColor=148EFF)&nbsp;
+![Redis](https://img.shields.io/badge/-Redis-05122A?style=flat&logo=redis&logoColor=DD0031)&nbsp;
+![Heroku](https://img.shields.io/badge/-Heroku-05122A?style=flat&logo=heroku&logoColor=430098)&nbsp;
+![Supabase](https://img.shields.io/badge/-Supabase-05122A?style=flat&logo=supabase&logoColor=3ECF8E)&nbsp;
+<a href="https://discord.com/users/479379710766481436"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?&style=flat&logo=discord&logoColor=white" /></a>&nbsp;
+<a href="https://linkedin.com/in/noahmott"><img alt="LinkedIn" src="https://img.shields.io/badge/linkedin%20-%230077B5.svg?&style=flat&logo=linkedin&logoColor=white"/></a>&nbsp;
 
 A Model Context Protocol (MCP) server providing comprehensive World of Warcraft guild analytics, auction house data, and market insights through the Blizzard Battle.net API. Built with FastMCP 2.0 and deployed on Heroku.
 
