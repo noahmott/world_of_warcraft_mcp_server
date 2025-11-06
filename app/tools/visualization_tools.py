@@ -1,17 +1,13 @@
 """
-Visualization and chart generation tools for WoW Guild MCP Server
+Guild data tools for WoW Guild MCP Server
 """
 
 from typing import Dict, Any, List
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
-from ..visualization.chart_generator import ChartGenerator
 from ..utils.logging_utils import get_logger
 from ..utils.response_utils import error_response, api_error_response
-
-# Create chart generator instance
-chart_generator = ChartGenerator()
 
 logger = get_logger(__name__)
 
@@ -21,85 +17,45 @@ logger = get_logger(__name__)
 async def get_guild_raid_progression(
     realm: str,
     guild_name: str,
-    raid_tier: str = "current",
     game_version: str = "retail"
 ) -> Dict[str, Any]:
     """
     Get guild raid progression data from achievements
 
-    Returns structured data about guild's raid progression including boss kills
-    across different difficulty levels. More useful than charts for analysis.
+    Returns raw guild achievement data which includes all raid progression information.
 
     Args:
         realm: Server realm name (e.g., 'lightbringer', 'stormrage', 'illidan')
         guild_name: Guild name (e.g., 'legal-tender', 'Liquid', 'Echo')
-        raid_tier: Raid tier to check. Options:
-            - 'current' or 'war-within': The War Within (Nerub-ar Palace)
-            - 'dragonflight': All Dragonflight raids (Amirdrassil, Aberrus, Vault)
-            - 'shadowlands': All Shadowlands raids
-            - 'bfa': Battle for Azeroth raids
-            - 'legion': Legion raids
-            - 'wod': Warlords of Draenor raids
-            - 'mop': Mists of Pandaria raids
-            - 'cataclysm': Cataclysm raids
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Dictionary with raid progression data including:
-        - raids: List of raids with boss kill counts per difficulty
-        - summary: Overall progression statistics
+        Dictionary with guild achievement data including:
         - guild_info: Basic guild information
+        - achievements: All guild achievements (includes raid progression)
+        - total_achievements: Total achievement count
+        - recent_achievements: Recently earned achievements
     """
     try:
         logger.info(f"Getting raid progression for {guild_name} on {realm} ({game_version})")
 
         async with BlizzardAPIClient(game_version=game_version) as client:
-            guild_data = await client.get_comprehensive_guild_data(realm, guild_name)
-
-            # Extract raid progression using the chart generator's logic
-            achievements = guild_data.get("guild_achievements", {})
-            raid_progress = chart_generator._extract_raid_progress(achievements, raid_tier)
-
-            if not raid_progress:
-                return {
-                    "success": True,
-                    "guild_name": guild_name,
-                    "realm": realm,
-                    "tier": raid_tier,
-                    "raids": [],
-                    "message": f"No raid progression found for tier '{raid_tier}'"
-                }
-
-            # Calculate summary stats
-            total_raids = len(raid_progress)
-            total_bosses_killed = sum(
-                d["bosses_killed"]
-                for raid in raid_progress
-                for d in raid.get("difficulties", [])
-            )
-            total_bosses_available = sum(
-                d["total_bosses"]
-                for raid in raid_progress
-                for d in raid.get("difficulties", [])
-            )
+            guild_info = await client.get_guild_info(realm, guild_name)
+            achievements = await client.get_guild_achievements(realm, guild_name)
 
             return {
                 "success": True,
                 "guild_name": guild_name,
                 "realm": realm,
-                "tier": raid_tier,
-                "raids": raid_progress,
-                "summary": {
-                    "total_raids": total_raids,
-                    "total_bosses_killed": total_bosses_killed,
-                    "total_bosses_available": total_bosses_available,
-                    "completion_percentage": round((total_bosses_killed / total_bosses_available * 100), 1) if total_bosses_available > 0 else 0
-                },
                 "guild_info": {
-                    "name": guild_data.get("guild_info", {}).get("name"),
-                    "faction": guild_data.get("guild_info", {}).get("faction", {}).get("name"),
-                    "member_count": guild_data.get("guild_info", {}).get("member_count")
-                }
+                    "name": guild_info.get("name"),
+                    "faction": guild_info.get("faction", {}).get("name"),
+                    "member_count": guild_info.get("member_count"),
+                    "achievement_points": guild_info.get("achievement_points", 0)
+                },
+                "achievements": achievements.get("achievements", []),
+                "total_achievements": len(achievements.get("achievements", [])),
+                "recent_achievements": achievements.get("achievements", [])[:10]
             }
 
     except BlizzardAPIError as e:
@@ -130,15 +86,15 @@ async def compare_member_performance(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Comparison results with chart_data as Supabase Storage URL (click to view/download)
+        Comparison results with member data for the specified metric
     """
     try:
         logger.info(f"Comparing members {member_names} in {guild_name} ({game_version})")
-        
+
         async with BlizzardAPIClient(game_version=game_version) as client:
             # Get data for specific members
             comparison_data = []
-            
+
             for member_name in member_names:
                 try:
                     char_data = await client.get_character_profile(realm, member_name)
@@ -148,20 +104,33 @@ async def compare_member_performance(
                     comparison_data.append(char_data)
                 except BlizzardAPIError as e:
                     logger.warning(f"Failed to get data for {member_name}: {e.message}")
-            
-            # Generate comparison chart
-            chart_data = await chart_generator.create_member_comparison_chart(
-                comparison_data, metric
-            )
-            
+
+            # Extract comparison values
+            comparison_values = []
+            for char in comparison_data:
+                if metric == "item_level":
+                    value = char.get("equipment_summary", {}).get("average_item_level", 0)
+                elif metric == "achievement_points":
+                    value = char.get("achievement_points", 0)
+                elif metric == "guild_rank":
+                    value = char.get("guild_rank", 999)
+                else:
+                    value = 0
+
+                comparison_values.append({
+                    "name": char.get("name", "Unknown"),
+                    "metric": metric,
+                    "value": value
+                })
+
             return {
                 "success": True,
                 "member_data": comparison_data,
                 "comparison_metric": metric,
-                "chart_data": chart_data,
+                "comparison_values": comparison_values,
                 "member_count": len(comparison_data)
             }
-            
+
     except Exception as e:
         logger.error(f"Error comparing members: {str(e)}")
         return error_response(f"Comparison failed: {str(e)}")

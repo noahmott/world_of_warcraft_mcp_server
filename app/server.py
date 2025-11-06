@@ -34,9 +34,6 @@ from .services.market_history import MarketHistoryService
 from .services.supabase_client import SupabaseRealTimeClient
 from .services.supabase_streaming import initialize_streaming_service
 
-# Local imports - Visualization
-from .visualization.chart_generator import ChartGenerator
-
 # Local imports - Utils
 from .utils.datetime_utils import utc_now, utc_now_iso, format_duration_ms
 from .utils.logging_utils import setup_logging, get_logger
@@ -68,7 +65,6 @@ else:
 mcp: FastMCP = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
 
 # Initialize service instances
-chart_generator = ChartGenerator()
 auction_aggregator = AuctionAggregatorService()
 market_history = MarketHistoryService()
 

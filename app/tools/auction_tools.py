@@ -166,7 +166,11 @@ async def get_market_data(
             if include_trends:
                 item_ids_for_trends: List[str] = list(aggregated.keys()) if item_ids is None else [str(i) for i in item_ids]
                 # For commodities, use "commodities" as realm identifier
-                realm_for_trends = "commodities" if market_type == "commodities" else realm
+                if market_type == "commodities":
+                    realm_for_trends = "commodities"
+                else:
+                    # realm is guaranteed to be a string at this point (checked on line 114-115)
+                    realm_for_trends = realm if realm else "unknown"
                 trends = await _get_historical_trends(
                     realm_for_trends,
                     item_ids_for_trends,
