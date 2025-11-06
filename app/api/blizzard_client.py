@@ -58,7 +58,7 @@ class RateLimiter:
     def __init__(self, max_requests: int = 100, time_window: int = 1):
         self.max_requests = max_requests
         self.time_window = time_window
-        self.requests = []
+        self.requests: List[datetime] = []
         self._lock = asyncio.Lock()
     
     async def acquire(self):
@@ -94,13 +94,14 @@ class BlizzardAPIClient:
         self.client_secret: str = client_secret
         self.region = os.getenv("BLIZZARD_REGION", "us")
         self.locale = os.getenv("BLIZZARD_LOCALE", "en_US")
-        self.game_version = (game_version or os.getenv("WOW_VERSION", "classic")).lower()  # "retail" or "classic"
+        version_raw = game_version or os.getenv("WOW_VERSION", "classic")
+        self.game_version = version_raw.lower() if version_raw else "classic"  # "retail" or "classic"
 
         # Dynamic base URL based on region
         self.base_url = f"https://{self.region}.api.blizzard.com"
 
-        self.access_token = None
-        self.token_expires_at = None
+        self.access_token: Optional[str] = None
+        self.token_expires_at: Optional[datetime] = None
         self.session: Optional[ClientSession] = None
         self.rate_limiter = RateLimiter(100, 1)  # 100 requests per second
         
@@ -112,7 +113,7 @@ class BlizzardAPIClient:
         }
         
         # Cache for connected realm lookups
-        self._connected_realm_cache = {}
+        self._connected_realm_cache: Dict[str, Dict[str, Any]] = {}
         
     async def __aenter__(self):
         """Async context manager entry"""
@@ -150,12 +151,13 @@ class BlizzardAPIClient:
                     )
                 
                 token_data = await response.json()
-                self.access_token = token_data["access_token"]
+                access_token: str = token_data["access_token"]
+                self.access_token = access_token
                 expires_in = token_data.get("expires_in", 3600)
                 self.token_expires_at = datetime.now() + timedelta(seconds=expires_in - 60)  # 1 minute buffer
-                
+
                 logger.info("Successfully obtained Blizzard API access token")
-                return self.access_token
+                return access_token
                 
         except aiohttp.ClientError as e:
             raise BlizzardAPIError(f"Network error getting access token: {str(e)}")

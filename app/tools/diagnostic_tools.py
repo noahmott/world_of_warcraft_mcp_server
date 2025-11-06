@@ -17,7 +17,7 @@ from ..utils.response_utils import success_response, error_response
 logger = get_logger(__name__)
 
 
-@mcp_tool()
+# Internal diagnostic tool - not exposed via MCP
 @with_supabase_logging
 async def test_classic_auction_house() -> Dict[str, Any]:
     """
@@ -78,7 +78,7 @@ async def test_classic_auction_house() -> Dict[str, Any]:
         return {"error": f"Classic auction house test failed: {str(e)}"}
 
 
-@mcp_tool()
+# Internal diagnostic tool - not exposed via MCP
 @with_supabase_logging
 async def test_supabase_connection() -> Dict[str, Any]:
     """Test Supabase connection and logging functionality"""

@@ -15,89 +15,114 @@ logger = get_logger(__name__)
 
 @mcp_tool()
 @with_supabase_logging
-async def get_realm_status(
+async def get_realm_info(
     realm: str,
-    game_version: str = "retail"
+    game_version: str = "retail",
+    include_status: bool = True
 ) -> Dict[str, Any]:
     """
-    Get realm status and information including connected realm ID
-    
+    Get realm information including connected realm ID
+
+    Always returns the connected_realm_id which is required for auction house queries.
+    Optionally includes detailed status information.
+
     Args:
         realm: Server realm name (e.g., 'stormrage', 'area-52', 'mankrik')
         game_version: WoW version ('retail' or 'classic')
-    
+        include_status: Include detailed status info (population, timezone, type)
+
     Returns:
-        Realm information including status, population, and connected realm ID
+        Realm information including connected_realm_id and optional status details
     """
     try:
-        logger.info(f"Getting realm status for {realm} ({game_version})")
-        
-        # Check if it's a known Classic realm
+        logger.info(f"Getting realm info for {realm} ({game_version})")
+
+        # Check if it's a known realm (prefer hardcoded IDs for reliability)
         realm_lower = realm.lower()
+        known_id = None
+
         if game_version == "classic" and realm_lower in KNOWN_CLASSIC_REALMS:
-            logger.info(f"Using known realm ID for {realm}: {KNOWN_CLASSIC_REALMS[realm_lower]}")
+            known_id = KNOWN_CLASSIC_REALMS[realm_lower]
+            logger.info(f"Using known Classic realm ID for {realm}: {known_id}")
+        elif game_version == "retail" and realm_lower in KNOWN_RETAIL_REALMS:
+            known_id = KNOWN_RETAIL_REALMS[realm_lower]
+            logger.info(f"Using known Retail realm ID for {realm}: {known_id}")
+
+        # If we have a known ID and don't need status, return immediately
+        if known_id and not include_status:
             return {
                 "success": True,
                 "realm": realm,
-                "connected_realm_id": KNOWN_CLASSIC_REALMS[realm_lower],
+                "connected_realm_id": known_id,
                 "game_version": game_version,
-                "source": "hardcoded",
-                "status": "online",
-                "message": f"Found hardcoded ID for Classic realm {realm}"
+                "source": "hardcoded"
             }
-        
-        # Get realm info from API
+
+        # Get realm info from API (for status or if no known ID)
         async with BlizzardAPIClient(game_version=game_version) as client:
             try:
                 # Get realm information
                 realm_info = await client._get_realm_info(realm)
-                
+
                 # Extract connected realm ID
                 connected_realm = realm_info.get('connected_realm', {})
-                connected_realm_id = None
-                
-                if isinstance(connected_realm, dict) and 'id' in connected_realm:
-                    connected_realm_id = connected_realm['id']
-                elif isinstance(connected_realm, int):
-                    connected_realm_id = connected_realm
-                else:
-                    # Try to extract ID from href if available
-                    href = connected_realm.get('href', '') if isinstance(connected_realm, dict) else ''
-                    if 'connected-realm/' in href:
-                        connected_realm_id = int(href.split('connected-realm/')[-1].split('?')[0])
-                
-                # Get realm status
-                status = realm_info.get('status', {})
-                status_type = status.get('type', 'UNKNOWN') if isinstance(status, dict) else 'UNKNOWN'
-                status_name = status.get('name', 'Unknown') if isinstance(status, dict) else 'Unknown'
-                
-                return {
+                connected_realm_id = known_id  # Prefer known ID if we have it
+
+                if not connected_realm_id:
+                    # Try to extract from API response
+                    if isinstance(connected_realm, dict) and 'id' in connected_realm:
+                        connected_realm_id = connected_realm['id']
+                    elif isinstance(connected_realm, int):
+                        connected_realm_id = connected_realm
+                    else:
+                        # Try to extract ID from href if available
+                        href = connected_realm.get('href', '') if isinstance(connected_realm, dict) else ''
+                        if 'connected-realm/' in href:
+                            connected_realm_id = int(href.split('connected-realm/')[-1].split('?')[0])
+
+                # Build base response
+                response = {
                     "success": True,
                     "realm": realm,
                     "connected_realm_id": connected_realm_id,
                     "game_version": game_version,
-                    "status": status_type.lower(),
-                    "status_name": status_name,
-                    "population": realm_info.get('population', {}).get('name', 'Unknown'),
-                    "timezone": realm_info.get('timezone', 'Unknown'),
-                    "type": realm_info.get('type', {}).get('name', 'Unknown'),
-                    "source": "api"
+                    "source": "api" if not known_id else "hardcoded"
                 }
-                
+
+                # Add detailed status if requested
+                if include_status:
+                    # Get status info
+                    status = realm_info.get('status', {})
+                    status_type = status.get('type', 'UNKNOWN') if isinstance(status, dict) else 'UNKNOWN'
+
+                    response.update({
+                        "status": status_type.lower(),
+                        "population": realm_info.get('population', {}).get('name', 'Unknown'),
+                        "timezone": realm_info.get('timezone', 'Unknown'),
+                        "type": realm_info.get('type', {}).get('name', 'Unknown'),
+                        "is_tournament": realm_info.get('is_tournament', False)
+                    })
+
+                return response
+
             except BlizzardAPIError as e:
                 logger.warning(f"API error for realm {realm}: {str(e)}")
-                
-                # Fall back to hardcoded IDs for known realms
-                if game_version == "retail" and realm_lower in KNOWN_RETAIL_REALMS:
-                    return {
+
+                # Fall back to hardcoded ID if API fails
+                if known_id:
+                    response = {
                         "success": True,
                         "realm": realm,
-                        "connected_realm_id": KNOWN_RETAIL_REALMS[realm_lower],
+                        "connected_realm_id": known_id,
                         "game_version": game_version,
                         "source": "hardcoded",
-                        "status": "unknown",
-                        "message": f"API error, using hardcoded ID for {realm}"
+                        "message": f"API error, using hardcoded ID"
                     }
+
+                    if include_status:
+                        response["status"] = "unknown"
+
+                    return response
                 else:
                     return {
                         "success": False,
@@ -105,85 +130,7 @@ async def get_realm_status(
                         "realm": realm,
                         "game_version": game_version
                     }
-                    
-    except Exception as e:
-        logger.error(f"Error getting realm status: {str(e)}")
-        return error_response(f"Realm status lookup failed: {str(e)}")
 
-
-@mcp_tool()
-@with_supabase_logging
-async def get_classic_realm_id(
-    realm: str,
-    game_version: str = "classic"
-) -> Dict[str, Any]:
-    """
-    Get the connected realm ID for a Classic realm
-    
-    Args:
-        realm: Server realm name
-        game_version: WoW version ('classic' only - classic-era servers currently unavailable)
-    
-    Returns:
-        Realm information including connected realm ID
-    """
-    try:
-        logger.info(f"Looking up realm ID for {realm} ({game_version})")
-        
-        # First, check if we have a known ID
-        realm_lower = realm.lower()
-        if realm_lower in KNOWN_CLASSIC_REALMS:
-            logger.info(f"Using known realm ID for {realm}: {KNOWN_CLASSIC_REALMS[realm_lower]}")
-            return {
-                "success": True,
-                "realm": realm,
-                "connected_realm_id": KNOWN_CLASSIC_REALMS[realm_lower],
-                "source": "hardcoded",
-                "message": f"Found hardcoded ID for {realm}"
-            }
-        
-        # Try to get realm info from API
-        async with BlizzardAPIClient(game_version=game_version) as client:
-            try:
-                realm_info = await client._get_realm_info(realm)
-                connected_realm = realm_info.get('connected_realm', {})
-                
-                if isinstance(connected_realm, dict) and 'id' in connected_realm:
-                    realm_id = connected_realm['id']
-                elif isinstance(connected_realm, int):
-                    realm_id = connected_realm
-                else:
-                    # Try to extract ID from href if available
-                    href = connected_realm.get('href', '') if isinstance(connected_realm, dict) else ''
-                    if 'connected-realm/' in href:
-                        realm_id = int(href.split('connected-realm/')[-1].split('?')[0])
-                    else:
-                        return {
-                            "success": False,
-                            "error": f"Could not extract realm ID from API response",
-                            "realm": realm,
-                            "connected_realm_data": connected_realm
-                        }
-                
-                logger.info(f"Found realm ID {realm_id} for {realm} from API")
-                
-                return {
-                    "success": True,
-                    "realm": realm,
-                    "connected_realm_id": realm_id,
-                    "source": "api",
-                    "message": f"Found realm ID from API"
-                }
-                
-            except BlizzardAPIError as e:
-                logger.error(f"API error looking up realm {realm}: {str(e)}")
-                return {
-                    "success": False,
-                    "error": f"Realm not found in API: {str(e)}",
-                    "realm": realm,
-                    "suggestion": "Please check the realm name or try using one of the known Classic realms"
-                }
-                
     except Exception as e:
-        logger.error(f"Error getting classic realm ID: {str(e)}")
-        return error_response(f"Classic realm ID lookup failed: {str(e)}")
+        logger.error(f"Error getting realm info: {str(e)}")
+        return error_response(f"Realm info lookup failed: {str(e)}")
