@@ -18,6 +18,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 
 # Third-party imports
+import aiohttp
 import redis.asyncio as aioredis
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -640,6 +641,101 @@ async def search_items_by_name(
     except Exception as e:
         logger.error(f"Error searching for items: {str(e)}")
         return {"error": f"Item search failed: {str(e)}"}
+
+
+@mcp.tool()
+@with_supabase_logging
+async def search_item_on_wowhead(
+    item_name: str,
+    game_version: str = "retail"
+) -> Dict[str, Any]:
+    """
+    Search for WoW items on WowHead database when Blizzard API search fails.
+
+    This is a FALLBACK tool - use search_items_by_name first. Only use this when
+    the Blizzard API can't find the item (like "Crushed Gemstones").
+
+    Provides WowHead search URL where you can manually find the item ID.
+
+    Args:
+        item_name: Item name to search for (e.g., "Crushed Gemstones", "Aqirite")
+        game_version: WoW version ('retail' or 'classic')
+
+    Returns:
+        WowHead search URL and instructions for finding the item ID
+    """
+    try:
+        import re
+        from bs4 import BeautifulSoup, Tag
+
+        logger.info(f"Searching WowHead for: {item_name}")
+
+        # Construct the wowhead search URL
+        search_url = f"https://www.wowhead.com/items/name:{item_name.replace(' ', '+')}"
+
+        try:
+            # Fetch the wowhead page
+            async with aiohttp.ClientSession() as session:
+                async with session.get(search_url) as response:
+                    if response.status != 200:
+                        raise Exception(f"WowHead returned status {response.status}")
+
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+
+                    # Look for item links in the search results
+                    # WowHead uses links like <a href="/item=228693/crushed-gemstones">
+                    item_links = soup.find_all('a', href=re.compile(r'/item=\d+/'))
+
+                    if item_links:
+                        # Get the first result's item ID
+                        first_element = item_links[0]
+
+                        if isinstance(first_element, Tag):
+                            first_link = first_element.get('href')
+
+                            if first_link and isinstance(first_link, str):
+                                item_id_match = re.search(r'/item=(\d+)/', first_link)
+
+                                if item_id_match:
+                                    item_id = int(item_id_match.group(1))
+
+                                    # Get the item name from the link text
+                                    found_name = first_element.get_text(strip=True)
+
+                                    return {
+                                        "success": True,
+                                        "item_name": item_name,
+                                        "found_name": found_name,
+                                        "item_id": item_id,
+                                        "source": "wowhead",
+                                        "wowhead_url": f"https://www.wowhead.com/item={item_id}",
+                                        "game_version": game_version
+                                    }
+
+                    # No results found
+                    return {
+                        "success": False,
+                        "item_name": item_name,
+                        "error": "No items found on WowHead",
+                        "wowhead_search_url": search_url,
+                        "suggestion": "Try searching with a different name or check spelling"
+                    }
+
+        except Exception as scrape_error:
+            logger.error(f"WowHead scraping failed: {scrape_error}")
+            # Fallback: return manual instructions
+            return {
+                "success": False,
+                "item_name": item_name,
+                "error": f"Could not scrape WowHead: {str(scrape_error)}",
+                "wowhead_search_url": search_url,
+                "instructions": f"Visit {search_url} manually and look for the item ID in the URL"
+            }
+
+    except Exception as e:
+        logger.error(f"Error searching WowHead: {str(e)}")
+        return {"error": f"WowHead search failed: {str(e)}"}
 
 
 @mcp.tool()
