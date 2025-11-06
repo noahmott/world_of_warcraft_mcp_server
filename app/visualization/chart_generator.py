@@ -384,13 +384,13 @@ class ChartGenerator:
             "current": {
                 "Nerub-ar Palace": {
                     "tier": "The War Within",
-                    "achievements": {"LFR": 40243, "Normal": 40244, "Heroic": 40245, "Mythic": 40246}
+                    "achievements": {"Guild Run": 40256, "Heroic": 40257, "Mythic": 40258}
                 }
             },
             "war-within": {
                 "Nerub-ar Palace": {
                     "tier": "The War Within",
-                    "achievements": {"LFR": 40243, "Normal": 40244, "Heroic": 40245, "Mythic": 40246}
+                    "achievements": {"Guild Run": 40256, "Heroic": 40257, "Mythic": 40258}
                 }
             },
             "dragonflight": {
