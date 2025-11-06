@@ -1494,7 +1494,7 @@ async def capture_economy_snapshot(
                     
                     # Process auction data into summary statistics
                     auctions = ah_data['auctions']
-                    item_stats = {}
+                    item_stats: Dict[int, Dict[str, Any]] = {}
                     
                     for auction in auctions:
                         item_id = auction.get('item', {}).get('id', 0)
@@ -1632,7 +1632,7 @@ async def get_economy_trends(
         # Limit hours to 30 days max
         hours = min(hours, 720)
 
-        trends: Dict[int, Any] = {}
+        trends: Dict[str, Any] = {}
         snapshot_base_key = f"economy_snapshot:{game_version}:{region}:{realm.lower()}"
         
         # Get all snapshots for the time period

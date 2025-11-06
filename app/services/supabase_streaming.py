@@ -113,10 +113,14 @@ class SupabaseStreamingService:
                 reasoning=log_data.get('reasoning'),
                 metadata=log_data.get('metadata')
             )
-            
+
             # Stream to Supabase
+            if not self.supabase_client:
+                logger.warning("Supabase client not available")
+                return False
+
             success = await self.supabase_client.stream_activity_log(activity_entry)
-            
+
             if success:
                 # Also broadcast the update
                 await self.supabase_client.broadcast_activity_update({
@@ -148,8 +152,12 @@ class SupabaseStreamingService:
                 'event_type': 'session_update',
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
-            
+
             # Broadcast session update via real-time channel
+            if not self.supabase_client:
+                logger.warning("Supabase client not available")
+                return False
+
             success = await self.supabase_client.broadcast_activity_update({
                 'type': 'session_event',
                 'data': session_event
@@ -180,8 +188,12 @@ class SupabaseStreamingService:
                     'event_type': 'stats_update',
                     'timestamp': datetime.now(timezone.utc).isoformat()
                 }
-                
+
                 # Broadcast stats update
+                if not self.supabase_client:
+                    logger.warning("Supabase client not available")
+                    return False
+
                 success = await self.supabase_client.broadcast_activity_update({
                     'type': 'stats_event',
                     'data': stats_event

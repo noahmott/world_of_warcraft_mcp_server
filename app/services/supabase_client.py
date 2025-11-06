@@ -69,7 +69,7 @@ class SupabaseRealTimeClient:
             self.client = await acreate_client(
                 self.url,
                 self.key,
-                options=ClientOptions(
+                options=ClientOptions(  # type: ignore[arg-type]
                     auto_refresh_token=False,
                     persist_session=False
                 )
@@ -252,11 +252,11 @@ class SupabaseRealTimeClient:
 
             channel = self.client.channel(
                 "activity-logs",
-                {"config": {"broadcast": {"ack": True, "self": False}}}
+                {"config": {"broadcast": {"ack": True, "self": False}}}  # type: ignore[typeddict-item]
             )
-            
+
             # Subscribe to database changes
-            await channel.on(
+            await channel.on(  # type: ignore[attr-defined]
                 'postgres_changes',
                 {
                     'event': 'INSERT',

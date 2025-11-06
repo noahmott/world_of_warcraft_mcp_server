@@ -254,8 +254,8 @@ async def get_character_details(
                             spec_info["pvp_talents"].append(pvp_talent_name)
                         
                         spec_data.append(spec_info)
-                    
-                    character_data["specializations"] = spec_data
+
+                    character_data["specializations"] = spec_data  # type: ignore[assignment]
                 except BlizzardAPIError as e:
                     errors.append(f"Specializations: {str(e)}")
             
