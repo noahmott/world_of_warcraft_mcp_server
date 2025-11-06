@@ -10,7 +10,6 @@ A comprehensive World of Warcraft guild analytics MCP server that provides:
 """
 
 # Standard library imports
-import asyncio
 import httpx
 import json
 import os
@@ -36,7 +35,6 @@ from .services.supabase_streaming import initialize_streaming_service
 from .visualization.chart_generator import ChartGenerator
 from .utils.datetime_utils import utc_now, utc_now_iso, format_duration_ms
 from .utils.logging_utils import setup_logging, get_logger
-from .utils.response_utils import success_response, error_response, api_error_response
 
 # Load environment variables
 load_dotenv()
@@ -106,7 +104,6 @@ async def get_connected_realm_id(realm: str, game_version: str = "retail", clien
 def with_supabase_logging(func):
     """Decorator to automatically log tool calls to Supabase with user tracking"""
     import functools
-    import inspect
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
@@ -149,12 +146,14 @@ def with_supabase_logging(func):
 
                             # Look up the db user_id from Supabase
                             await get_or_initialize_services()
-                            if supabase_client:
+                            if supabase_client and supabase_client.client:
                                 try:
                                     result = await supabase_client.client.table("users").select("id").eq("oauth_provider", oauth_provider).eq("oauth_user_id", oauth_user_id).execute()
                                     if result.data and len(result.data) > 0:
-                                        db_user_id = result.data[0]['id']
-                                        logger.info(f"Found db user_id: {db_user_id}")
+                                        user_record = result.data[0]
+                                        if isinstance(user_record, dict) and 'id' in user_record:
+                                            db_user_id = str(user_record['id'])
+                                            logger.info(f"Found db user_id: {db_user_id}")
                                 except Exception as e:
                                     logger.warning(f"Failed to lookup user in database: {e}")
                 except Exception as e:
@@ -765,7 +764,7 @@ async def get_classic_realm_id(
                     else:
                         return {
                             "success": False,
-                            "error": f"Could not extract connected realm ID from response",
+                            "error": "Could not extract connected realm ID from response",
                             "realm_info": realm_info
                         }
                 
@@ -920,7 +919,7 @@ async def get_character_details(
                 # Handle case where profile might not be a dict
                 if not isinstance(profile, dict):
                     logger.error(f"Profile data is not a dict: {type(profile)} - {profile}")
-                    return {"error": f"Invalid profile data received from API"}
+                    return {"error": "Invalid profile data received from API"}
 
                 # Safe navigation for nested fields - handle both nested and direct string formats
                 race_data = profile.get("race", {})
@@ -1937,8 +1936,6 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
                          user_info: Optional[Dict[str, Any]] = None,
                          db_user_id: Optional[str] = None):
     """Log activity directly to Supabase with user tracking"""
-    global supabase_client
-
     try:
         # Initialize services if needed (consolidates all initialization)
         await get_or_initialize_services()
@@ -2033,8 +2030,8 @@ def main():
 
         # Initialize services before starting server (needed for OAuth user tracking)
         logger.info("🔧 Initializing services...")
-        import asyncio
-        asyncio.run(get_or_initialize_services())
+        import asyncio as aio
+        aio.run(get_or_initialize_services())
         logger.info("✅ Services initialized")
 
         logger.info("✅ Starting server...")
