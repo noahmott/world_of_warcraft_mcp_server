@@ -12,6 +12,8 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import plotly.graph_objects as go
+import plotly.io as pio
 
 from ..utils.wow_utils import get_localized_name, parse_class_info
 
@@ -229,7 +231,7 @@ class ChartGenerator:
                 return await self._create_no_data_chart("No member data available")
             
             # Count classes
-            class_counts = {}
+            class_counts: Dict[str, int] = {}
             for member in member_data:
                 class_name = parse_class_info(member.get("character_class"))
                 class_counts[class_name] = class_counts.get(class_name, 0) + 1

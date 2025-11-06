@@ -11,15 +11,16 @@ logger = logging.getLogger(__name__)
 def get_dynamic_namespace(region: str, game_version: Optional[str] = None) -> str:
     """
     Get the appropriate dynamic namespace for auction/realm data.
-    
+
     Args:
         region: The region (e.g., "us", "eu")
         game_version: "classic" or "retail" (defaults to env WOW_VERSION)
-    
+
     Returns:
         The namespace string (e.g., "dynamic-us" or "dynamic-classic-us")
     """
-    version = (game_version or os.getenv("WOW_VERSION", "classic")).lower()
+    version_str = game_version or os.getenv("WOW_VERSION", "classic")
+    version = version_str.lower() if version_str else "classic"
     
     if version == "classic":
         return f"dynamic-classic-{region}"
@@ -30,15 +31,16 @@ def get_dynamic_namespace(region: str, game_version: Optional[str] = None) -> st
 def get_static_namespace(region: str, game_version: Optional[str] = None) -> str:
     """
     Get the appropriate static namespace for item/spell data.
-    
+
     Args:
         region: The region (e.g., "us", "eu")
         game_version: "classic" or "retail" (defaults to env WOW_VERSION)
-    
+
     Returns:
         The namespace string (e.g., "static-us" or "static-classic-us")
     """
-    version = (game_version or os.getenv("WOW_VERSION", "classic")).lower()
+    version_str = game_version or os.getenv("WOW_VERSION", "classic")
+    version = version_str.lower() if version_str else "classic"
     
     if version == "classic":
         return f"static-classic-{region}"
@@ -49,15 +51,16 @@ def get_static_namespace(region: str, game_version: Optional[str] = None) -> str
 def get_profile_namespace(region: str, game_version: Optional[str] = None) -> str:
     """
     Get the appropriate profile namespace for character data.
-    
+
     Args:
         region: The region (e.g., "us", "eu")
         game_version: "classic" or "retail" (defaults to env WOW_VERSION)
-    
+
     Returns:
         The namespace string (e.g., "profile-us" or "profile-classic-us")
     """
-    version = (game_version or os.getenv("WOW_VERSION", "classic")).lower()
+    version_str = game_version or os.getenv("WOW_VERSION", "classic")
+    version = version_str.lower() if version_str else "classic"
     
     if version == "classic":
         return f"profile-classic-{region}"

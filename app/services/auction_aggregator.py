@@ -20,10 +20,11 @@ class AuctionAggregatorService:
     def aggregate_auction_data(auctions: List[Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:
         """
         Aggregate raw auction data by item ID
-        
+
         Returns dict of item_id -> aggregated metrics
         """
-        item_aggregates = defaultdict(lambda: {
+        from typing import Any, Set, List as ListType
+        item_aggregates: Dict[int, Dict[str, Any]] = defaultdict(lambda: {
             'prices': [],
             'quantities': [],
             'sellers': set(),
@@ -58,7 +59,7 @@ class AuctionAggregatorService:
             quantities = np.array(data['quantities'])
             
             # Calculate seller concentration
-            seller_quantities = defaultdict(int)
+            seller_quantities: Dict[Any, int] = defaultdict(int)
             for auction in data['auctions']:
                 seller_id = auction.get('seller', {}).get('id', 'unknown')
                 seller_quantities[seller_id] += auction.get('quantity', 1)
@@ -229,7 +230,7 @@ class AuctionAggregatorService:
         realm_slug: str,
         item_id: int,
         previous_snapshot: Optional[Dict[str, Any]] = None,
-        current_snapshot: Dict[str, Any] = None
+        current_snapshot: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """Calculate market velocity metrics between snapshots"""
         if not previous_snapshot or not current_snapshot:

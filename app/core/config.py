@@ -5,10 +5,8 @@ Configuration management for WoW Guild MCP Server
 import os
 from functools import lru_cache
 from typing import Optional
-try:
-    from pydantic import BaseSettings, Field
-except ImportError:
-    from pydantic.v1 import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -17,50 +15,47 @@ load_dotenv()
 
 class Settings(BaseSettings):
     """Application settings with environment variable support"""
-    
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
     # Blizzard API Settings
-    blizzard_client_id: str = Field(..., env="BLIZZARD_CLIENT_ID")
-    blizzard_client_secret: str = Field(..., env="BLIZZARD_CLIENT_SECRET")
-    blizzard_region: str = Field("us", env="BLIZZARD_REGION")
-    blizzard_locale: str = Field("en_US", env="BLIZZARD_LOCALE")
-    wow_version: str = Field("retail", env="WOW_VERSION")
+    blizzard_client_id: str = Field(..., validation_alias="BLIZZARD_CLIENT_ID")
+    blizzard_client_secret: str = Field(..., validation_alias="BLIZZARD_CLIENT_SECRET")
+    blizzard_region: str = Field(default="us", validation_alias="BLIZZARD_REGION")
+    blizzard_locale: str = Field(default="en_US", validation_alias="BLIZZARD_LOCALE")
+    wow_version: str = Field(default="retail", validation_alias="WOW_VERSION")
     
     # Redis Settings
-    redis_url: Optional[str] = Field(None, env="REDIS_URL")
-    
+    redis_url: Optional[str] = Field(default=None, validation_alias="REDIS_URL")
+
     # Supabase Settings
-    supabase_url: Optional[str] = Field(None, env="SUPABASE_URL")
-    supabase_key: Optional[str] = Field(None, env="SUPABASE_KEY")
+    supabase_url: Optional[str] = Field(default=None, validation_alias="SUPABASE_URL")
+    supabase_key: Optional[str] = Field(default=None, validation_alias="SUPABASE_KEY")
 
     # Server Settings
-    port: int = Field(8000, env="PORT")
-    host: str = Field("0.0.0.0", env="HOST")
-    
+    port: int = Field(default=8000, validation_alias="PORT")
+    host: str = Field(default="0.0.0.0", validation_alias="HOST")
+
     # API Timeout Settings
-    api_timeout_total: int = Field(300, env="API_TIMEOUT_TOTAL")
-    api_timeout_connect: int = Field(10, env="API_TIMEOUT_CONNECT")
-    api_timeout_read: int = Field(60, env="API_TIMEOUT_READ")
-    
+    api_timeout_total: int = Field(default=300, validation_alias="API_TIMEOUT_TOTAL")
+    api_timeout_connect: int = Field(default=10, validation_alias="API_TIMEOUT_CONNECT")
+    api_timeout_read: int = Field(default=60, validation_alias="API_TIMEOUT_READ")
+
     # OAuth Authentication Settings
-    oauth_provider: Optional[str] = Field(None, env="OAUTH_PROVIDER")
-    oauth_base_url: str = Field("http://localhost:8000", env="OAUTH_BASE_URL")
+    oauth_provider: Optional[str] = Field(default=None, validation_alias="OAUTH_PROVIDER")
+    oauth_base_url: str = Field(default="http://localhost:8000", validation_alias="OAUTH_BASE_URL")
 
     # Discord OAuth
-    discord_client_id: Optional[str] = Field(None, env="DISCORD_CLIENT_ID")
-    discord_client_secret: Optional[str] = Field(None, env="DISCORD_CLIENT_SECRET")
+    discord_client_id: Optional[str] = Field(default=None, validation_alias="DISCORD_CLIENT_ID")
+    discord_client_secret: Optional[str] = Field(default=None, validation_alias="DISCORD_CLIENT_SECRET")
 
     # Google OAuth
-    google_client_id: Optional[str] = Field(None, env="GOOGLE_CLIENT_ID")
-    google_client_secret: Optional[str] = Field(None, env="GOOGLE_CLIENT_SECRET")
+    google_client_id: Optional[str] = Field(default=None, validation_alias="GOOGLE_CLIENT_ID")
+    google_client_secret: Optional[str] = Field(default=None, validation_alias="GOOGLE_CLIENT_SECRET")
 
     # Feature Flags
-    enable_redis_caching: bool = Field(True, env="ENABLE_REDIS_CACHING")
-    enable_supabase_logging: bool = Field(True, env="ENABLE_SUPABASE_LOGGING")
-    enable_ai_analysis: bool = Field(True, env="ENABLE_AI_ANALYSIS")
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    enable_redis_caching: bool = Field(default=True, validation_alias="ENABLE_REDIS_CACHING")
+    enable_supabase_logging: bool = Field(default=True, validation_alias="ENABLE_SUPABASE_LOGGING")
+    enable_ai_analysis: bool = Field(default=True, validation_alias="ENABLE_AI_ANALYSIS")
 
 
 @lru_cache()

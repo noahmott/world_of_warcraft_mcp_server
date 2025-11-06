@@ -93,24 +93,32 @@ class OptimizedGuildFetcher:
         # Fetch data in parallel
         guild_info_task = self.client.get_guild_info(realm, guild_name)
         roster_task = self.client.get_guild_roster(realm, guild_name)
-        
-        guild_info, roster = await asyncio.gather(
-            guild_info_task, 
+
+        results = await asyncio.gather(
+            guild_info_task,
             roster_task,
             return_exceptions=True
         )
-        
+        guild_info_raw: Any = results[0]
+        roster_raw: Any = results[1]
+
         # Handle any errors
-        if isinstance(guild_info, Exception):
-            guild_info = {"error": str(guild_info)}
-        if isinstance(roster, Exception):
-            roster = {"members": []}
-        
+        guild_info_dict: Dict[str, Any]
+        roster_dict: Dict[str, Any]
+        if isinstance(guild_info_raw, Exception):
+            guild_info_dict = {"error": str(guild_info_raw)}
+        else:
+            guild_info_dict = guild_info_raw
+        if isinstance(roster_raw, Exception):
+            roster_dict = {"members": []}
+        else:
+            roster_dict = roster_raw
+
         # Create summary
-        members = roster.get("members", [])
-        
+        members: List[Dict[str, Any]] = roster_dict.get("members", [])
+
         # Group by class and level
-        class_distribution = {}
+        class_distribution: Dict[str, int] = {}
         level_distribution = {"max_level": 0, "below_max": 0}
         
         for member in members:
@@ -129,9 +137,9 @@ class OptimizedGuildFetcher:
                 level_distribution["below_max"] += 1
         
         return {
-            "guild_info": guild_info,
+            "guild_info": guild_info_dict,
             "member_count": len(members),
             "class_distribution": class_distribution,
             "level_distribution": level_distribution,
-            "last_updated": roster.get("last_updated")
+            "last_updated": roster_dict.get("last_updated")
         }

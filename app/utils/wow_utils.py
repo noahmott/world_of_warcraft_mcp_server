@@ -27,11 +27,12 @@ def get_localized_name(data: Dict[str, Any], field: str = "name", locale: str = 
     # Classic format: direct string
     if isinstance(name_data, str):
         return name_data
-    
+
     # Retail format: nested object with locales
     if isinstance(name_data, dict):
-        return name_data.get(locale, name_data.get("en_US", "Unknown"))
-    
+        localized = name_data.get(locale, name_data.get("en_US", "Unknown"))
+        return str(localized) if localized is not None else "Unknown"
+
     return "Unknown"
 
 

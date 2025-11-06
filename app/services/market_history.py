@@ -239,7 +239,7 @@ class MarketHistoryService:
             rows_deleted = result.scalar()
             await db.commit()
             logger.info(f"Cleaned up {rows_deleted} old market history records")
-            return rows_deleted
+            return int(rows_deleted) if rows_deleted is not None else 0
         except Exception as e:
             logger.error(f"Error cleaning up old data: {e}")
             await db.rollback()
