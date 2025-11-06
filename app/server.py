@@ -564,6 +564,78 @@ async def lookup_item_details(
 
 @mcp.tool()
 @with_supabase_logging
+async def search_items_by_name(
+    item_name: str,
+    max_results: int = 10,
+    game_version: str = "retail"
+) -> Dict[str, Any]:
+    """
+    Search for WoW items by name to find their item IDs.
+
+    Use this when you need to find item IDs for items you only know the name of.
+    Perfect for looking up crafting materials, gems, ores, herbs, etc.
+
+    Args:
+        item_name: Item name to search for (partial matches work, e.g., "Aqirite", "Emerald")
+        max_results: Maximum number of results to return (default 10)
+        game_version: WoW version ('retail' or 'classic')
+
+    Returns:
+        List of matching items with their IDs, names, and quality
+    """
+    try:
+        logger.info(f"Searching for items matching: {item_name} ({game_version})")
+
+        async with BlizzardAPIClient(game_version=game_version) as client:
+            search_results = await client.search_items(item_name, max_results)
+
+            if not search_results or 'results' not in search_results:
+                return {
+                    "success": False,
+                    "error": f"No items found matching '{item_name}'",
+                    "search_term": item_name
+                }
+
+            results = search_results.get('results', [])
+            items = []
+
+            for result in results[:max_results]:
+                item_data = result.get('data', {})
+                item_id = item_data.get('id')
+                name = item_data.get('name', {})
+
+                # Handle name format (can be dict or string)
+                if isinstance(name, dict):
+                    item_name_str = name.get('en_US', 'Unknown')
+                else:
+                    item_name_str = name
+
+                items.append({
+                    'item_id': item_id,
+                    'name': item_name_str,
+                    'quality': item_data.get('quality', {}).get('name', 'Unknown'),
+                    'item_class': item_data.get('item_class', {}).get('name', 'Unknown'),
+                    'level': item_data.get('level', 0)
+                })
+
+            return {
+                "success": True,
+                "search_term": item_name,
+                "items_found": len(items),
+                "items": items,
+                "game_version": game_version
+            }
+
+    except BlizzardAPIError as e:
+        logger.error(f"Blizzard API error: {e.message}")
+        return {"error": f"API Error: {e.message}"}
+    except Exception as e:
+        logger.error(f"Error searching for items: {str(e)}")
+        return {"error": f"Item search failed: {str(e)}"}
+
+
+@mcp.tool()
+@with_supabase_logging
 async def get_realm_status(
     realm: str,
     game_version: str = "retail"

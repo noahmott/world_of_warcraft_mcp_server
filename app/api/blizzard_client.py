@@ -600,7 +600,26 @@ class BlizzardAPIClient:
         """Get item data by item ID"""
         endpoint = f"/data/wow/item/{item_id}"
         return await self.make_request(endpoint)
-    
+
+    async def search_items(self, item_name: str, max_results: int = 10) -> Dict[str, Any]:
+        """
+        Search for items by name using Blizzard's search API
+
+        Args:
+            item_name: Item name to search for (partial matches work)
+            max_results: Maximum number of results to return (default 10)
+
+        Returns:
+            Dictionary with search results including item IDs and names
+        """
+        endpoint = "/data/wow/search/item"
+        params = {
+            "name.en_US": item_name,
+            "orderby": "id",
+            "_page": 1
+        }
+        return await self.make_request(endpoint, params)
+
     # Comprehensive guild analysis
     async def get_comprehensive_guild_data(self, realm: str, guild_name: str) -> Dict[str, Any]:
         """Get comprehensive guild data including roster and member details"""
