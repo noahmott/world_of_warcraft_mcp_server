@@ -26,15 +26,15 @@ async def generate_raid_progress_chart(
 ) -> str:
     """
     Generate visual raid progression charts
-    
+
     Args:
         realm: Server realm
         guild_name: Guild name
         raid_tier: Raid tier ('current', 'dragonflight', 'shadowlands')
         game_version: WoW version ('retail' or 'classic')
-    
+
     Returns:
-        Base64 encoded image of the raid progression chart
+        Markdown formatted image of the raid progression chart (renders inline in Claude)
     """
     try:
         logger.info(f"Generating raid chart for {guild_name} on {realm} ({game_version})")
@@ -47,7 +47,7 @@ async def generate_raid_progress_chart(
                 guild_data, raid_tier
             )
             
-            return chart_data  # Base64 encoded PNG
+            return chart_data  # Markdown image
             
     except BlizzardAPIError as e:
         logger.error(f"Blizzard API error: {e.message}")
@@ -68,16 +68,16 @@ async def compare_member_performance(
 ) -> Dict[str, Any]:
     """
     Compare performance metrics across guild members
-    
+
     Args:
         realm: Server realm
         guild_name: Guild name
         member_names: List of character names to compare
         metric: Metric to compare ('item_level', 'achievement_points', 'guild_rank')
         game_version: WoW version ('retail' or 'classic')
-    
+
     Returns:
-        Comparison results with chart data
+        Comparison results with chart_data as markdown formatted image (renders inline in Claude)
     """
     try:
         logger.info(f"Comparing members {member_names} in {guild_name} ({game_version})")

@@ -117,15 +117,17 @@ class ChartGenerator:
             
             plt.tight_layout()
             
-            # Convert to base64
+            # Convert to base64 and return as markdown image
             buffer = io.BytesIO()
-            plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none')
+            plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
             plt.close()
             buffer.seek(0)
             img_base64 = base64.b64encode(buffer.read()).decode()
-            
+
+            # Return markdown with embedded image
+            markdown_image = f"![Raid Progress Chart](data:image/png;base64,{img_base64})"
             logger.info(f"Generated raid progress chart for {len(raid_data)} raids")
-            return img_base64
+            return markdown_image
             
         except Exception as e:
             logger.error(f"Error creating raid progress chart: {str(e)}")
@@ -202,15 +204,17 @@ class ChartGenerator:
             
             plt.tight_layout()
             
-            # Convert to base64
+            # Convert to base64 and return as markdown image
             buffer = io.BytesIO()
-            plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none')
+            plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
             plt.close()
             buffer.seek(0)
             img_base64 = base64.b64encode(buffer.read()).decode()
-            
+
+            # Return markdown with embedded image
+            markdown_image = f"![Member Comparison Chart](data:image/png;base64,{img_base64})"
             logger.info(f"Generated member comparison chart for {len(member_data)} members")
-            return img_base64
+            return markdown_image
             
         except Exception as e:
             logger.error(f"Error creating member comparison chart: {str(e)}")
@@ -263,12 +267,13 @@ class ChartGenerator:
                 font={"color": "white"}
             )
             
-            # Convert to image
+            # Convert to image and return as markdown
             img_bytes = pio.to_image(fig, format="png", width=800, height=600)
             img_base64 = base64.b64encode(img_bytes).decode()
-            
+            markdown_image = f"![Class Distribution Chart](data:image/png;base64,{img_base64})"
+
             logger.info(f"Generated class distribution chart for {len(class_counts)} classes")
-            return img_base64
+            return markdown_image
             
         except Exception as e:
             logger.error(f"Error creating class distribution chart: {str(e)}")
@@ -318,12 +323,13 @@ class ChartGenerator:
                 font={"color": "white"}
             )
             
-            # Convert to image
+            # Convert to image and return as markdown
             img_bytes = pio.to_image(fig, format="png", width=800, height=600)
             img_base64 = base64.b64encode(img_bytes).decode()
-            
+            markdown_image = f"![Level Distribution Chart](data:image/png;base64,{img_base64})"
+
             logger.info(f"Generated level distribution chart for {len(member_data)} members")
-            return img_base64
+            return markdown_image
             
         except Exception as e:
             logger.error(f"Error creating level distribution chart: {str(e)}")
@@ -357,28 +363,30 @@ class ChartGenerator:
         ax.set_ylim(0, 1)
         ax.axis('off')
         
-        # Convert to base64
+        # Convert to base64 and return as markdown
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none')
+        plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
         plt.close()
         buffer.seek(0)
-        return base64.b64encode(buffer.read()).decode()
-    
+        img_base64 = base64.b64encode(buffer.read()).decode()
+        return f"![Chart](data:image/png;base64,{img_base64})"
+
     async def _create_error_chart(self, error_message: str) -> str:
         """Create a chart indicating an error occurred"""
         fig, ax = plt.subplots(figsize=(8, 4))
-        
-        ax.text(0.5, 0.5, f"⚠️ {error_message}",
+
+        ax.text(0.5, 0.5, f"Error: {error_message}",
                ha='center', va='center', transform=ax.transAxes,
                fontsize=16, color='red')
-        
+
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
         ax.axis('off')
-        
-        # Convert to base64
+
+        # Convert to base64 and return as markdown
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none')
+        plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none', bbox_inches='tight')
         plt.close()
         buffer.seek(0)
-        return base64.b64encode(buffer.read()).decode()
+        img_base64 = base64.b64encode(buffer.read()).decode()
+        return f"![Error Chart](data:image/png;base64,{img_base64})"
