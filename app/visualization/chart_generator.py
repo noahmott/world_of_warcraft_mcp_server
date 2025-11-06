@@ -61,7 +61,7 @@ class ChartGenerator:
     
     async def create_raid_progress_chart(self, guild_data: Dict[str, Any], raid_tier: str = "current", guild_name: Optional[str] = None) -> str:
         """
-        Create interactive raid progression chart using Plotly
+        Create raid progression chart using matplotlib/seaborn
 
         Args:
             guild_data: Guild data from Blizzard API
@@ -69,7 +69,7 @@ class ChartGenerator:
             guild_name: Optional guild name for filename
 
         Returns:
-            Public URL to interactive HTML chart
+            Public URL to PNG chart image
         """
         try:
             # Extract guild achievements for raid progress
@@ -82,19 +82,17 @@ class ChartGenerator:
             if not raid_data:
                 return await self._create_no_data_chart("No raid progression data available")
 
-            # Create Plotly figure with subplots
-            from plotly.subplots import make_subplots
-
-            fig = make_subplots(
-                rows=len(raid_data),
-                cols=1,
-                subplot_titles=[f"{raid['name']} - {raid['tier']}" for raid in raid_data],
-                vertical_spacing=0.15
-            )
+            # Calculate figure size based on number of raids
+            fig_height = 4 * len(raid_data)
+            fig, axes = plt.subplots(len(raid_data), 1, figsize=(12, fig_height))
+            if len(raid_data) == 1:
+                axes = [axes]  # Make it iterable
 
             guild_display_name = guild_name or get_localized_name(guild_info)
+            fig.suptitle(f"Raid Progression - {guild_display_name}",
+                        fontsize=18, color='white', y=0.995)
 
-            for i, raid in enumerate(raid_data, 1):
+            for ax, raid in zip(axes, raid_data):
                 difficulties = raid.get("difficulties", [])
 
                 if difficulties:
@@ -103,61 +101,56 @@ class ChartGenerator:
                     max_bosses = [d["total_bosses"] for d in difficulties]
                     colors = [self.difficulty_colors.get(d, "#CCCCCC") for d in x_labels]
 
-                    # Add bar chart
-                    fig.add_trace(
-                        go.Bar(
-                            x=x_labels,
-                            y=y_values,
-                            marker_color=colors,
-                            text=[f"{killed}/{total}" for killed, total in zip(y_values, max_bosses)],
-                            textposition='outside',
-                            name=raid['name'],
-                            hovertemplate='<b>%{x}</b><br>Bosses Killed: %{y}<br><extra></extra>',
-                            showlegend=False
-                        ),
-                        row=i, col=1
-                    )
+                    # Create bar chart
+                    bars = ax.bar(x_labels, y_values, color=colors, edgecolor='white', linewidth=1.5)
+
+                    # Add text labels on bars
+                    for bar, killed, total in zip(bars, y_values, max_bosses):
+                        height = bar.get_height()
+                        ax.text(bar.get_x() + bar.get_width()/2., height + 0.3,
+                               f'{killed}/{total}',
+                               ha='center', va='bottom', color='white', fontsize=11, fontweight='bold')
 
                     # Add max boss reference lines
-                    for x_idx, max_boss in enumerate(max_bosses):
-                        fig.add_hline(
-                            y=max_boss,
-                            line_dash="dash",
-                            line_color="red",
-                            opacity=0.5,
-                            row=i, col=1
-                        )
+                    for max_boss in max_bosses:
+                        if max_boss > 0:
+                            ax.axhline(y=max_boss, color='red', linestyle='--', alpha=0.4, linewidth=1.5)
 
-            # Update layout
-            fig.update_layout(
-                title={
-                    "text": f"Raid Progression - {guild_display_name}",
-                    "x": 0.5,
-                    "xanchor": "center",
-                    "font": {"size": 24, "color": "white"}
-                },
-                template="plotly_dark",
-                height=400 * len(raid_data),
-                showlegend=False,
-                font={"color": "white"}
-            )
+                    # Styling
+                    ax.set_title(f"{raid['name']} - {raid['tier']}",
+                                color='white', fontsize=14, pad=10)
+                    ax.set_ylabel('Bosses Killed', color='white', fontsize=11)
+                    ax.set_ylim(0, max(max_bosses) * 1.15 if max_bosses else 10)
 
-            # Update y-axes
-            fig.update_yaxes(title_text="Bosses Killed", color="white")
+                    # Dark theme styling
+                    ax.set_facecolor('#1a1a1a')
+                    ax.tick_params(colors='white', labelsize=10)
+                    ax.spines['bottom'].set_color('white')
+                    ax.spines['left'].set_color('white')
+                    ax.spines['top'].set_visible(False)
+                    ax.spines['right'].set_visible(False)
+                    ax.grid(axis='y', alpha=0.2, color='white')
 
-            # Generate HTML with embedded Plotly.js (more reliable than CDN)
-            html_content = pio.to_html(fig, include_plotlyjs=True, full_html=True)
+            plt.tight_layout()
+
+            # Generate PNG image bytes
+            buffer = io.BytesIO()
+            plt.savefig(buffer, format='png', facecolor='#1a1a1a', edgecolor='none',
+                       bbox_inches='tight', dpi=100)
+            plt.close()
+            buffer.seek(0)
+            img_bytes = buffer.read()
 
             # Upload to Supabase and return URL with unique identifier
             safe_name = guild_name.lower().replace(' ', '-').replace("'", '') if guild_name else 'guild'
             unique_id = uuid.uuid4().hex[:8]
-            url = await image_storage.upload_html(
-                html_content,
-                filename=f"raid_progress_{safe_name}_{unique_id}.html"
+            url = await image_storage.upload_chart(
+                img_bytes,
+                filename=f"raid_progress_{safe_name}_{unique_id}.png"
             )
 
             if url:
-                logger.info(f"Generated interactive raid progress chart for {len(raid_data)} raids: {url}")
+                logger.info(f"Generated raid progress chart for {len(raid_data)} raids: {url}")
                 return url
             else:
                 return "Error: Failed to upload chart to storage"
