@@ -42,7 +42,7 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 **Data & Caching:**
 - Redis 6.2 (caching and performance optimization)
 - Supabase (activity logging and user tracking)
-- SQLAlchemy 2.0 + asyncpg (database operations)
+- SQLAlchemy 2.0 (database operations)
 
 **APIs & HTTP:**
 - httpx 0.28.1 (async HTTP client)
@@ -50,11 +50,7 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 - tenacity 9.0.0 (retry logic)
 
 **Data Processing:**
-- pandas 2.2+
-- numpy <2.0
-- matplotlib 3.8+ (chart generation)
-- seaborn 0.13+ (visualization)
-- plotly 6.0+ (interactive charts)
+- numpy <2.0 (numerical operations)
 
 **Configuration:**
 - pydantic 2.11+ (settings validation)
