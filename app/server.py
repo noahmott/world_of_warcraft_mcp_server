@@ -89,7 +89,20 @@ async def get_connected_realm_id(realm: str, game_version: str = "retail", clien
     if client:
         try:
             realm_info = await client._get_realm_info(realm)
-            connected_realm_id = realm_info.get('connected_realm', {}).get('id')
+            connected_realm = realm_info.get('connected_realm', {})
+
+            # Try to get ID directly first
+            connected_realm_id = connected_realm.get('id')
+
+            # If no direct ID, try to extract from href
+            if not connected_realm_id and 'href' in connected_realm:
+                href = connected_realm['href']
+                # Extract ID from URL like ".../connected-realm/127?..."
+                import re
+                match = re.search(r'/connected-realm/(\d+)', href)
+                if match:
+                    connected_realm_id = int(match.group(1))
+
             if connected_realm_id:
                 logger.info(f"Got realm ID from API for {realm}: {connected_realm_id}")
                 return connected_realm_id
