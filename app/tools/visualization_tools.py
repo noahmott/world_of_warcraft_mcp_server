@@ -18,22 +18,22 @@ logger = get_logger(__name__)
 
 @mcp_tool()
 @with_supabase_logging
-async def generate_raid_progress_chart(
+async def get_guild_raid_progression(
     realm: str,
     guild_name: str,
     raid_tier: str = "current",
     game_version: str = "retail"
-) -> str:
+) -> Dict[str, Any]:
     """
-    Generate interactive raid progression charts and upload to Supabase Storage
+    Get guild raid progression data from achievements
 
-    Creates an interactive Plotly HTML chart showing guild raid progression with boss kill counts
-    across different difficulty levels. The chart is stored in Supabase and accessible via public URL.
+    Returns structured data about guild's raid progression including boss kills
+    across different difficulty levels. More useful than charts for analysis.
 
     Args:
-        realm: Server realm name (e.g., 'lightbringer', 'stormrage')
-        guild_name: Guild name (e.g., 'legal-tender')
-        raid_tier: Raid tier to display. Options:
+        realm: Server realm name (e.g., 'lightbringer', 'stormrage', 'illidan')
+        guild_name: Guild name (e.g., 'legal-tender', 'Liquid', 'Echo')
+        raid_tier: Raid tier to check. Options:
             - 'current' or 'war-within': The War Within (Nerub-ar Palace)
             - 'dragonflight': All Dragonflight raids (Amirdrassil, Aberrus, Vault)
             - 'shadowlands': All Shadowlands raids
@@ -45,29 +45,69 @@ async def generate_raid_progress_chart(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Public URL to interactive HTML chart in Supabase Storage (opens in browser, zoomable/hoverable)
-
-    Note: If guild has no progress in requested tier, returns "No raid progression data available" message
+        Dictionary with raid progression data including:
+        - raids: List of raids with boss kill counts per difficulty
+        - summary: Overall progression statistics
+        - guild_info: Basic guild information
     """
     try:
-        logger.info(f"Generating raid chart for {guild_name} on {realm} ({game_version})")
-        
+        logger.info(f"Getting raid progression for {guild_name} on {realm} ({game_version})")
+
         async with BlizzardAPIClient(game_version=game_version) as client:
             guild_data = await client.get_comprehensive_guild_data(realm, guild_name)
-            
-            # Generate raid progression chart
-            chart_data = await chart_generator.create_raid_progress_chart(
-                guild_data, raid_tier, guild_name=guild_name
+
+            # Extract raid progression using the chart generator's logic
+            achievements = guild_data.get("guild_achievements", {})
+            raid_progress = chart_generator._extract_raid_progress(achievements, raid_tier)
+
+            if not raid_progress:
+                return {
+                    "success": True,
+                    "guild_name": guild_name,
+                    "realm": realm,
+                    "tier": raid_tier,
+                    "raids": [],
+                    "message": f"No raid progression found for tier '{raid_tier}'"
+                }
+
+            # Calculate summary stats
+            total_raids = len(raid_progress)
+            total_bosses_killed = sum(
+                d["bosses_killed"]
+                for raid in raid_progress
+                for d in raid.get("difficulties", [])
+            )
+            total_bosses_available = sum(
+                d["total_bosses"]
+                for raid in raid_progress
+                for d in raid.get("difficulties", [])
             )
 
-            return chart_data  # Supabase Storage URL
-            
+            return {
+                "success": True,
+                "guild_name": guild_name,
+                "realm": realm,
+                "tier": raid_tier,
+                "raids": raid_progress,
+                "summary": {
+                    "total_raids": total_raids,
+                    "total_bosses_killed": total_bosses_killed,
+                    "total_bosses_available": total_bosses_available,
+                    "completion_percentage": round((total_bosses_killed / total_bosses_available * 100), 1) if total_bosses_available > 0 else 0
+                },
+                "guild_info": {
+                    "name": guild_data.get("guild_info", {}).get("name"),
+                    "faction": guild_data.get("guild_info", {}).get("faction", {}).get("name"),
+                    "member_count": guild_data.get("guild_info", {}).get("member_count")
+                }
+            }
+
     except BlizzardAPIError as e:
         logger.error(f"Blizzard API error: {e.message}")
-        return await chart_generator._create_error_chart(f"API Error: {e.message}")
+        return error_response(f"API Error: {e.message}")
     except Exception as e:
-        logger.error(f"Error generating chart: {str(e)}")
-        return await chart_generator._create_error_chart(f"Chart generation failed: {str(e)}")
+        logger.error(f"Error getting raid progression: {str(e)}")
+        return error_response(f"Failed to get raid progression: {str(e)}")
 
 
 @mcp_tool()
