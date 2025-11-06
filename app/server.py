@@ -75,7 +75,7 @@ supabase_client: Optional[SupabaseRealTimeClient] = None
 # Use the realm IDs from constants
 # (These are imported at the top of the file)
 
-async def get_connected_realm_id(realm: str, game_version: str = "retail", client: BlizzardAPIClient = None) -> Optional[int]:
+async def get_connected_realm_id(realm: str, game_version: str = "retail", client: Optional[BlizzardAPIClient] = None) -> Optional[int]:
     """Get connected realm ID with fallback to hardcoded values"""
     realm_lower = realm.lower()
     
@@ -1378,8 +1378,8 @@ async def test_classic_auction_house() -> Dict[str, Any]:
             {"name": "Benediction", "id": 4728, "version": "classic"},
             {"name": "Grobbulus", "id": 4647, "version": "classic"}
         ]
-        
-        results = {}
+
+        results: Dict[str, Any] = {}
         
         # Test classic namespace only (classic-era currently unavailable)
         for game_version in ["classic"]:
@@ -1574,8 +1574,8 @@ async def capture_economy_snapshot(
                     logger.info(f"Captured economy snapshot for {realm}: {len(item_stats)} unique items")
                     results[realm] = {
                         "status": "success",
-                        "unique_items": len(item_stats),
-                        "total_auctions": len(auctions)
+                        "unique_items": str(len(item_stats)),
+                        "total_auctions": str(len(auctions))
                     }
                     snapshots_created += 1
                     
@@ -1631,8 +1631,8 @@ async def get_economy_trends(
         
         # Limit hours to 30 days max
         hours = min(hours, 720)
-        
-        trends = {}
+
+        trends: Dict[int, Any] = {}
         snapshot_base_key = f"economy_snapshot:{game_version}:{region}:{realm.lower()}"
         
         # Get all snapshots for the time period
@@ -1927,13 +1927,13 @@ async def test_supabase_connection() -> Dict[str, Any]:
 
 
 async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
-                         response_data: Dict[str, Any] = None,
-                         error_message: str = None,
-                         duration_ms: float = None,
-                         oauth_provider: str = None,
-                         oauth_user_id: str = None,
-                         user_info: Dict[str, Any] = None,
-                         db_user_id: str = None):
+                         response_data: Optional[Dict[str, Any]] = None,
+                         error_message: Optional[str] = None,
+                         duration_ms: Optional[float] = None,
+                         oauth_provider: Optional[str] = None,
+                         oauth_user_id: Optional[str] = None,
+                         user_info: Optional[Dict[str, Any]] = None,
+                         db_user_id: Optional[str] = None):
     """Log activity directly to Supabase with user tracking"""
     global supabase_client
 
