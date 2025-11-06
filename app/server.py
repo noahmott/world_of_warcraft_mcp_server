@@ -753,7 +753,10 @@ async def get_auction_house_snapshot(
     game_version: str = "retail"
 ) -> Dict[str, Any]:
     """
-    Get current auction house snapshot for a realm
+    Get current auction house snapshot for realm-specific items (weapons, armor, pets, etc.)
+
+    NOTE: For crafting materials (ores, gems, herbs, reagents), use get_commodity_prices instead!
+    Those items are sold region-wide, not per-realm.
 
     Args:
         realm: Server realm (e.g., 'stormrage', 'area-52')
@@ -762,7 +765,7 @@ async def get_auction_house_snapshot(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Current auction house data with market analysis
+        Current auction house data with market analysis for realm-specific items
     """
     try:
         logger.info(f"Getting auction house data for realm {realm} ({game_version})")
@@ -839,18 +842,21 @@ async def get_commodity_prices(
     """
     Get current commodity prices from the region-wide commodity auction house.
 
-    Commodities are items sold region-wide (not realm-specific) and include:
-    - Ores and gems (Aqirite, Bismuth, Extravagant Emerald, etc.)
-    - Herbs and plants
-    - Crafting reagents
-    - Trade goods
+    USE THIS TOOL for all crafting materials, profession items, and trade goods:
+    - Ores: Aqirite (210933), Bismuth, Ironclaw Ore, Null Stone
+    - Gems: Extravagant Emerald (212505), Radiant Ruby (212499), Ostentatious Onyx (212498), Stunning Sapphire (212500)
+    - Herbs: All herbs and plants
+    - Reagents: Crushed Gemstones, enchanting materials, alchemy reagents
+    - Trade goods: Leather, cloth, cooking materials
+
+    Commodities are region-wide (US/EU/etc), NOT realm-specific. All players in the region see the same prices.
 
     Args:
-        item_search: Comma-separated item IDs (e.g., '210933,212505') or single item ID
+        item_search: Comma-separated item IDs (e.g., '210933,212505,212499') or single item ID
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Dictionary of commodity prices with quantity available and unit price
+        Dictionary of commodity prices with quantity available and unit price in gold
     """
     try:
         logger.info(f"Getting commodity prices ({game_version})")
