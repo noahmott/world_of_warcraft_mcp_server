@@ -145,8 +145,8 @@ class ChartGenerator:
             # Update y-axes
             fig.update_yaxes(title_text="Bosses Killed", color="white")
 
-            # Generate HTML
-            html_content = pio.to_html(fig, include_plotlyjs='cdn', full_html=True)
+            # Generate HTML with embedded Plotly.js (more reliable than CDN)
+            html_content = pio.to_html(fig, include_plotlyjs=True, full_html=True)
 
             # Upload to Supabase and return URL with unique identifier
             safe_name = guild_name.lower().replace(' ', '-').replace("'", '') if guild_name else 'guild'
