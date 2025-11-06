@@ -325,10 +325,10 @@ set_mcp_instance(mcp)
 
 # Import tool modules - tools are automatically registered via @mcp_tool() decorators
 # No need to re-wrap them here!
-from .tools import guild_tools, member_tools, realm_tools, item_tools, auction_tools, visualization_tools
+from .tools import guild_tools, member_tools, realm_tools, item_tools, auction_tools, visualization_tools, demographics_tools
 
 # Tools are now registered and ready to use
-# The 8 tools exposed are:
+# The 9 tools exposed are:
 # 1. get_guild_member_list (from guild_tools)
 # 2. get_character_details (from member_tools)
 # 3. get_realm_info (from realm_tools)
@@ -337,6 +337,7 @@ from .tools import guild_tools, member_tools, realm_tools, item_tools, auction_t
 # 6. analyze_market (from auction_tools)
 # 7. generate_raid_progress_chart (from visualization_tools)
 # 8. compare_member_performance (from visualization_tools)
+# 9. get_guild_demographics (from demographics_tools)
 
 
 # ============================================================================
