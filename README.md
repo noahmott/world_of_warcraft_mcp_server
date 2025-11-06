@@ -1,92 +1,82 @@
-# <img src="https://wow.zamimg.com/images/wow/icons/large/classicon_warrior.jpg" width="24" height="24" alt="Warrior"> WoW Guild Analytics MCP Server
+# WoW Guild Analytics MCP Server
 
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.116.1-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-6.2.0-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![FastMCP](https://img.shields.io/badge/FastMCP-2.0+-FF6B6B?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDJMMiA3bDEwIDUgMTAtNXoiLz48cGF0aCBkPSJNMiAxN2wxMCA1IDEwLTVNMiAxMmwxMCA1IDEwLTUiLz48L3N2Zz4=)
-![Heroku](https://img.shields.io/badge/Heroku-Deployed-430098?style=for-the-badge&logo=heroku&logoColor=white)
-![WoW API](https://img.shields.io/badge/WoW%20API-Battle.net-00AEFF?style=for-the-badge&logo=battle.net&logoColor=white)
+![MCPServer](https://badge.mcpx.dev?type=server)
+![Python](https://img.shields.io/badge/python-3.13-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688.svg)
+![Redis](https://img.shields.io/badge/redis-6.2-DC382D.svg)
+![Heroku](https://img.shields.io/badge/heroku-deployed-430098.svg)
+![Supabase](https://img.shields.io/badge/supabase-enabled-3ECF8E.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+<a href="https://discord.com/users/479379710766481436"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?&style=flat&logo=discord&logoColor=white" /></a>
+<a href="https://linkedin.com/in/noahmott"><img alt="LinkedIn" src="https://img.shields.io/badge/linkedin%20-%230077B5.svg?&style=flat&logo=linkedin&logoColor=white"/></a>
 
-A powerful Model Context Protocol (MCP) server that provides AI assistants with comprehensive World of Warcraft guild analytics, member performance tracking, auction house monitoring, and data visualization capabilities. Built with FastMCP 2.0 and optimized for high performance with Redis caching and modular architecture.
+A Model Context Protocol (MCP) server providing comprehensive World of Warcraft guild analytics, auction house data, and market insights through the Blizzard Battle.net API. Built with FastMCP 2.0 and deployed on Heroku.
+
+## Overview
+
+This MCP server integrates with Claude Desktop (or any MCP client) to provide real-time WoW guild management, player analysis, and auction house economics data. It supports both Retail and Classic WoW with proper namespace handling, Redis caching for performance, and optional Supabase logging for user activity tracking.
 
 ## Features
 
-### <img src="https://wow.zamimg.com/images/wow/icons/small/classicon_paladin.jpg" width="18" height="18" alt="Paladin"> Guild Management Tools
-- **Guild Performance Analysis** - Comprehensive guild metrics with AI-powered insights
-- **Member List Management** - Detailed roster with sorting and filtering options
-- **Raid Progress Tracking** - Visual raid progression charts and statistics
-- **Member Performance Comparison** - Compare metrics across guild members
+- **Guild Management**: Retrieve guild rosters, member details, and raid progression data
+- **Character Analysis**: Deep character inspection including equipment, specializations, achievements, and statistics
+- **Auction House Economics**: Real-time commodity and auction house data with trend analysis
+- **Market Intelligence**: Identify profitable trading opportunities and track price trends
+- **Demographics Analytics**: Comprehensive guild demographic breakdowns by class, race, spec, and item level
+- **Realm Information**: Server status and connected realm ID lookup
+- **Item Lookup**: Batch item data retrieval with detailed metadata
+- **Visualization**: Raid progress tracking and member performance comparisons
+- **Redis Caching**: Optimized response times with intelligent cache management
+- **OAuth Authentication**: Optional Discord OAuth integration for user tracking
+- **Activity Logging**: Supabase integration for usage analytics and monitoring
 
-### <img src="https://wow.zamimg.com/images/wow/icons/small/classicon_rogue.jpg" width="18" height="18" alt="Rogue"> Economy & Auction House
-- **Real-time Auction Snapshots** - Current market data with price aggregation
-- **Economy Trend Analysis** - Historical price tracking up to 30 days
-- **Market Opportunity Scanner** - Find profitable items with customizable margins
-- **Item Market History** - Detailed analysis of specific item trends
+## Tech Stack
 
-### <img src="https://wow.zamimg.com/images/wow/icons/small/classicon_mage.jpg" width="18" height="18" alt="Mage"> Character Analytics
-- **Member Performance Analysis** - Individual character progression tracking
-- **Character Details Lookup** - Comprehensive character information including:
-  - Equipment and item levels
-  - Specializations and talents
-  - Achievements and statistics
-  - PvP ratings and rankings
-  - Mythic+ scores
-  - Collections and titles
+**Core Framework:**
+- Python 3.13
+- FastAPI 0.116.1
+- FastMCP 2.0+ (Model Context Protocol)
+- Uvicorn/Gunicorn (ASGI server)
 
-### <img src="https://wow.zamimg.com/images/wow/icons/small/classicon_shaman.jpg" width="18" height="18" alt="Shaman"> Realm & Server Tools
-- **Realm Status Monitoring** - Server status and population data
-- **Connected Realm Lookup** - Find connected realm IDs for API calls
-- **Classic Realm Support** - Full support for Classic progression servers
+**Data & Caching:**
+- Redis 6.2 (caching and performance optimization)
+- Supabase (activity logging and user tracking)
+- SQLAlchemy 2.0 + asyncpg (database operations)
 
-### <img src="https://wow.zamimg.com/images/wow/icons/small/classicon_priest.jpg" width="18" height="18" alt="Priest"> Data Visualization
-- **Raid Progress Charts** - Visual representation of guild raid completion
-- **Performance Comparison Graphs** - Side-by-side member metric comparison
-- **Market Trend Visualizations** - Price history charts and analysis
+**APIs & HTTP:**
+- httpx 0.28.1 (async HTTP client)
+- aiohttp 3.11.11 (additional async support)
+- tenacity 9.0.0 (retry logic)
 
-### <img src="https://wow.zamimg.com/images/wow/icons/small/classicon_hunter.jpg" width="18" height="18" alt="Hunter"> Diagnostic & Testing
-- **API Connection Testing** - Verify Blizzard API connectivity
-- **Classic Auction House Testing** - Test Classic realm auction data
-- **Supabase Connection Verification** - Database connectivity checks
+**Data Processing:**
+- pandas 2.2+
+- numpy <2.0
+- matplotlib 3.8+ (chart generation)
+- seaborn 0.13+ (visualization)
+- plotly 6.0+ (interactive charts)
 
-## Technical Architecture
+**Configuration:**
+- pydantic 2.11+ (settings validation)
+- python-dotenv 1.1 (environment management)
 
-### Core Technologies
-- **FastMCP 2.0+** - Model Context Protocol implementation
-- **FastAPI** - Modern async web framework
-- **Redis 6.2** - High-performance caching layer
-- **SQLAlchemy 2.0** - Async database ORM
-- **Supabase** - Cloud database with real-time features
-
-### Performance Optimizations
-- **Intelligent Redis Caching** - Reduces API calls significantly
-- **15-Day Guild Roster Cache** - Long-term caching for stable data
-- **10-Minute Economy Snapshots** - High-frequency market data capture
-- **Async/Await Throughout** - Non-blocking I/O operations
-- **Modular Tool Design** - 82% code reduction through refactoring
-
-### AI Integration
-- **OpenAI GPT-4o-mini** - Intelligent analysis and insights
-- **LangChain/LangGraph** - Sophisticated workflow orchestration
-- **Context-Aware Analysis** - Tailored insights based on data patterns
-
-## Quick Start
+## Installation
 
 ### Prerequisites
-- Python 3.9+
-- Redis server (local or cloud)
-- Blizzard API credentials
-- (Optional) Supabase account
-- (Optional) OpenAI API key
 
-### Installation
+- Python 3.13+
+- Redis server (local or Heroku Redis)
+- Blizzard Battle.net API credentials ([Get them here](https://develop.battle.net/))
+- Supabase account (optional, for activity logging)
+
+### Local Setup
 
 1. Clone the repository:
 ```bash
-git clone [repository-url]
+git clone https://github.com/noahmott/mcp_wowconomics_server.git
 cd mcp_wowconomics_server
 ```
 
-2. Create virtual environment:
+2. Create and activate a virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -100,191 +90,112 @@ pip install -r requirements.txt
 4. Configure environment variables:
 ```bash
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your credentials (see Environment Variables section)
 ```
 
-### Required Environment Variables
-
-```env
-# Blizzard API (Required)
-BLIZZARD_CLIENT_ID=your_client_id
-BLIZZARD_CLIENT_SECRET=your_client_secret
-
-# Redis (Required for caching)
-REDIS_URL=redis://localhost:6379  # Or your Heroku Redis URL
-
-# OpenAI (Optional - for AI analysis)
-OPENAI_API_KEY=your_openai_key
-
-# Supabase (Optional - for activity logging)
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
-```
-
-### Running the Server
-
-#### Development Mode
+5. Run the server:
 ```bash
-python -m app.mcp_server_fastmcp
+python -m app.server
 ```
 
-#### Production Mode (with Gunicorn)
-```bash
-gunicorn app.mcp_server_fastmcp:app -w 4 -k uvicorn.workers.UvicornWorker
-```
-
-#### Docker Compose (Recommended)
-```bash
-docker-compose -f config/docker/docker-compose.yml up
-```
-
-## Usage with AI Assistants
+The server will start on `http://localhost:8000` with the MCP endpoint at `/mcp`.
 
 ### Claude Desktop Integration
 
-1. Add to Claude Desktop configuration:
+Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+
 ```json
 {
   "mcpServers": {
-    "wow-guild": {
-      "command": "python",
-      "args": ["-m", "app.mcp_server_fastmcp"],
-      "cwd": "/path/to/mcp_wowconomics_server",
-      "env": {
-        "BLIZZARD_CLIENT_ID": "your_client_id",
-        "BLIZZARD_CLIENT_SECRET": "your_client_secret",
-        "REDIS_URL": "redis://localhost:6379"
-      }
+    "wow-guild-analytics": {
+      "url": "http://localhost:8000/mcp",
+      "transport": "http"
     }
   }
 }
 ```
 
-2. Restart Claude Desktop to load the MCP server
-
-### Example Queries
-
-```text
-"Analyze the performance of guild Elevate on Stormrage"
-
-"Show me the current auction house prices for Flask of Power on Mankrik Classic"
-
-"Compare the item levels of the top 5 DPS members in Method on Tarren Mill"
-
-"Find market opportunities on Area-52 with at least 50% profit margin"
-
-"Generate a raid progress chart for Liquid on Illidan"
+For production (Heroku):
+```json
+{
+  "mcpServers": {
+    "wow-guild-analytics": {
+      "url": "https://your-app-name.herokuapp.com/mcp",
+      "transport": "http"
+    }
+  }
+}
 ```
 
-## Available MCP Tools
+## Environment Variables
 
-### Guild Tools
-- `analyze_guild_performance` - Comprehensive guild analysis with AI insights
-- `get_guild_member_list` - Retrieve and sort guild roster
+### Required
 
-### Member Tools  
-- `analyze_member_performance` - Individual character performance metrics
-- `get_character_details` - Full character profile data
-
-### Auction Tools
-- `get_auction_house_snapshot` - Current market prices
-- `capture_economy_snapshot` - Store hourly market data
-- `get_economy_trends` - Historical price analysis
-- `find_market_opportunities` - Profitable item scanner
-- `analyze_item_market_history` - Single item trend analysis
-
-### Item Tools
-- `lookup_item_details` - Single item information
-- `lookup_multiple_items` - Batch item lookups
-
-### Realm Tools
-- `get_realm_status` - Server status and info
-- `get_classic_realm_id` - Classic realm ID lookup
-
-### Visualization Tools
-- `generate_raid_progress_chart` - Raid completion visuals
-- `compare_member_performance` - Member metric comparison
-
-### Diagnostic Tools
-- `test_classic_auction_house` - Classic AH connectivity
-- `test_supabase_connection` - Database connection test
-
-## Development
-
-### Project Structure
-```
-wowconomics/
-├── app/
-│   ├── core/           # Core infrastructure
-│   ├── tools/          # MCP tool implementations
-│   ├── services/       # Business logic
-│   ├── models/         # Database models
-│   ├── api/            # External API clients
-│   ├── workflows/      # Complex operations
-│   └── utils/          # Utility functions
-├── tests/              # Test suite
-├── config/             # Configuration files
-├── docs/               # Documentation
-└── deployment/         # Deployment configs
-```
-
-### Running Tests
 ```bash
-# Quick tool tests
-python tests/quick_test_tools.py
+# Blizzard API Credentials (REQUIRED)
+BLIZZARD_CLIENT_ID=your_blizzard_client_id_here
+BLIZZARD_CLIENT_SECRET=your_blizzard_client_secret_here
+BLIZZARD_REGION=us                    # Options: us, eu, kr, tw, cn
+BLIZZARD_LOCALE=en_US                 # Localization
+WOW_VERSION=retail                    # Options: retail, classic
 
-# Comprehensive test suite
-python tests/test_refactored_tools.py
-
-# Test specific tool category
-python tests/quick_test_tools.py guild
-python tests/quick_test_tools.py auction
+# Redis Configuration (REQUIRED)
+REDIS_URL=redis://localhost:6379      # Local development
+# Heroku automatically sets REDIS_URL for rediss://... (TLS)
 ```
 
-### Adding New Tools
+### Optional
 
-1. Create tool function in appropriate module:
-```python
-# app/tools/your_tools.py
-from .base import mcp_tool, with_supabase_logging
-
-@mcp_tool()
-@with_supabase_logging
-async def your_new_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
-    """Tool description for MCP"""
-    # Implementation
-    return {"result": "data"}
-```
-
-2. Import in main server file:
-```python
-# app/mcp_server_fastmcp.py
-from app.tools.your_tools import your_new_tool
-```
-
-3. Test your tool:
 ```bash
-python tests/quick_test_tools.py
+# OAuth Authentication (Optional)
+OAUTH_PROVIDER=                       # Options: discord, google (empty = disabled)
+OAUTH_BASE_URL=http://localhost:8000  # Your server's public URL
+DISCORD_CLIENT_ID=                    # Discord OAuth credentials
+DISCORD_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=                     # Google OAuth credentials
+GOOGLE_CLIENT_SECRET=
+
+# Supabase (Optional - Activity Logging)
+SUPABASE_URL=                         # Your Supabase project URL
+SUPABASE_SERVICE_KEY=                 # Service role key (bypasses RLS)
+
+# Server Configuration
+PORT=8000
+HOST=0.0.0.0
+DEBUG=false
+
+# Feature Flags
+ENABLE_REDIS_CACHING=true
+ENABLE_SUPABASE_LOGGING=true
+ENABLE_AI_ANALYSIS=true
+
+# API Timeouts (seconds)
+API_TIMEOUT_TOTAL=300
+API_TIMEOUT_CONNECT=10
+API_TIMEOUT_READ=60
 ```
 
 ## Deployment
 
 ### Heroku Deployment
 
-1. Create Heroku app:
+1. Create a Heroku app:
 ```bash
 heroku create your-app-name
 ```
 
 2. Add Redis addon:
 ```bash
-heroku addons:create heroku-redis:hobby-dev
+heroku addons:create heroku-redis:mini
 ```
 
 3. Set environment variables:
 ```bash
-heroku config:set BLIZZARD_CLIENT_ID=your_id
-heroku config:set BLIZZARD_CLIENT_SECRET=your_secret
+heroku config:set BLIZZARD_CLIENT_ID=your_client_id
+heroku config:set BLIZZARD_CLIENT_SECRET=your_client_secret
+heroku config:set BLIZZARD_REGION=us
+heroku config:set WOW_VERSION=retail
+# Add other optional variables as needed
 ```
 
 4. Deploy:
@@ -292,87 +203,227 @@ heroku config:set BLIZZARD_CLIENT_SECRET=your_secret
 git push heroku main
 ```
 
-### Docker Deployment
-
-Build and run with Docker:
+5. Verify deployment:
 ```bash
-docker build -f config/docker/Dockerfile -t wow-guild-mcp .
-docker run -p 8000:8000 --env-file .env wow-guild-mcp
+heroku logs --tail
 ```
 
-## Performance Considerations
+The server will automatically use the `REDIS_URL` environment variable set by the Heroku Redis addon.
 
-### Caching Strategy
-- **Guild Roster**: 15-day cache (from constants.py)
-- **Auction Data**: 1-hour cache for market freshness
-- **Character Data**: 2-hour cache (from redis_staging.py)
-- **Guild Info**: 6-hour cache (from redis_staging.py)
-- **Realm Data**: 24-hour cache (from redis_staging.py)
+### Docker Deployment (Alternative)
 
-### API Rate Limits
-- Blizzard API: 36,000 requests/hour
-- Efficient batching and caching minimize API usage
-- Automatic retry with exponential backoff
+```bash
+docker build -t wow-mcp-server .
+docker run -p 8000:8000 --env-file .env wow-mcp-server
+```
 
-### Resource Usage
-- Redis memory: 256MB max (configured in docker-compose.yml)
-- CPU: Minimal, mostly I/O bound
+## MCP Tools Available
+
+The server exposes 9 MCP tools for guild and economy analysis:
+
+### 1. `get_guild_member_list`
+Retrieve guild roster with sorting and filtering options.
+- **Parameters**: `realm`, `guild_name`, `sort_by`, `limit`, `quick_mode`, `game_version`
+- **Use Case**: Get overview of guild members, sorted by rank/level/name
+
+### 2. `get_character_details`
+Deep character inspection with equipment, specs, achievements, and statistics.
+- **Parameters**: `realm`, `character_name`, `sections`, `game_version`
+- **Sections**: profile, equipment, specializations, achievements, statistics, media, pvp, appearance, collections, titles, mythic_plus
+- **Use Case**: Detailed player analysis for recruitment or progression planning
+
+### 3. `get_realm_info`
+Retrieve realm status and connected realm ID for auction house queries.
+- **Parameters**: `realm`, `game_version`, `include_status`
+- **Use Case**: Lookup realm IDs before querying realm-specific auction houses
+
+### 4. `lookup_items`
+Batch item lookup by ID with detailed metadata.
+- **Parameters**: `item_ids` (int or list), `game_version`, `detailed`
+- **Use Case**: Get item names, quality, prices, and stats for market analysis
+
+### 5. `get_market_data`
+Current market prices for commodities or auction house items.
+- **Parameters**: `market_type`, `realm`, `item_ids`, `include_trends`, `trend_hours`, `max_results`, `game_version`
+- **Market Types**: `commodities` (region-wide), `auction_house` (realm-specific)
+- **Use Case**: Real-time market snapshots with optional historical trends
+
+### 6. `analyze_market`
+Find profitable trading opportunities or check economy snapshot health.
+- **Parameters**: `operation`, `market_type`, `realm`, `min_profit_margin`, `check_hours`, `realms`, `max_results`, `game_version`
+- **Operations**: `opportunities` (find deals), `health_check` (system status)
+- **Use Case**: Identify underpriced items or monitor data collection health
+
+### 7. `get_guild_raid_progression`
+Guild achievement data including raid progression.
+- **Parameters**: `realm`, `guild_name`, `game_version`
+- **Use Case**: Track guild raid progression and achievement milestones
+
+### 8. `compare_member_performance`
+Compare performance metrics across guild members.
+- **Parameters**: `realm`, `guild_name`, `member_names`, `metric`, `game_version`
+- **Metrics**: `item_level`, `achievement_points`, `guild_rank`
+- **Use Case**: Performance comparisons for raid team optimization
+
+### 9. `get_guild_demographics`
+Comprehensive demographic breakdown of guild composition.
+- **Parameters**: `realm`, `guild_name`, `game_version`, `max_level_only`
+- **Use Case**: Analyze guild composition by class, race, spec, faction, and item level
+
+## API Documentation
+
+### Base URL
+- **Local**: `http://localhost:8000`
+- **Production**: `https://your-app-name.herokuapp.com`
+
+### MCP Endpoint
+- **Path**: `/mcp`
+- **Protocol**: HTTP transport (FastMCP 2.0)
+- **Authentication**: Optional OAuth (Discord or Google)
+
+### Health Check
+```bash
+curl http://localhost:8000/health
+```
+
+### Example MCP Tool Call
+
+Through Claude Desktop or any MCP client:
+```
+Get the member list for guild "Legal Tender" on Lightbringer realm
+```
+
+Claude will automatically call:
+```json
+{
+  "tool": "get_guild_member_list",
+  "arguments": {
+    "realm": "lightbringer",
+    "guild_name": "Legal Tender",
+    "sort_by": "guild_rank",
+    "limit": 50,
+    "game_version": "retail"
+  }
+}
+```
+
+## Development
+
+### Project Structure
+```
+mcp_wowconomics_server/
+├── app/
+│   ├── server.py                  # Main MCP server
+│   ├── api/
+│   │   ├── blizzard_client.py     # Blizzard API client
+│   │   └── guild_optimizations.py # Optimized guild fetching
+│   ├── tools/
+│   │   ├── guild_tools.py         # Guild roster tools
+│   │   ├── member_tools.py        # Character analysis tools
+│   │   ├── realm_tools.py         # Realm lookup tools
+│   │   ├── item_tools.py          # Item data tools
+│   │   ├── auction_tools.py       # Market analysis tools
+│   │   ├── visualization_tools.py # Chart generation tools
+│   │   └── demographics_tools.py  # Demographics analysis
+│   ├── services/
+│   │   ├── activity_logger.py     # Activity logging service
+│   │   ├── auction_aggregator.py  # Auction data aggregation
+│   │   ├── market_history.py      # Market history tracking
+│   │   ├── supabase_client.py     # Supabase integration
+│   │   └── supabase_streaming.py  # Real-time streaming
+│   ├── core/
+│   │   ├── auth.py                # OAuth authentication
+│   │   ├── constants.py           # Game constants
+│   │   └── discord_token_verifier.py
+│   └── utils/
+│       ├── datetime_utils.py      # Time utilities
+│       ├── logging_utils.py       # Logging configuration
+│       ├── namespace_utils.py     # WoW namespace handling
+│       └── response_utils.py      # Response formatting
+├── requirements.txt
+├── Procfile                       # Heroku configuration
+├── .env.example                   # Environment template
+└── README.md
+```
+
+### Running Tests
+```bash
+pytest tests/
+```
+
+### Code Style
+```bash
+black app/
+flake8 app/
+mypy app/
+```
+
+## Caching Strategy
+
+The server implements intelligent Redis caching:
+- **Guild Rosters**: 15-day cache with age tracking
+- **Economy Snapshots**: 30-day retention with hourly captures
+- **Market Trends**: Rolling 30-day historical data
+- **Cache Keys**: Namespaced by game version, region, and realm
+
+## Monitoring & Logging
+
+**Activity Logging** (via Supabase):
+- All MCP tool calls logged with user tracking
+- OAuth user attribution (Discord/Google)
+- Request/response metadata and duration tracking
+- Error tracking and debugging
+
+**Health Checks**:
+- Redis connectivity status
+- Blizzard API rate limits
+- Supabase streaming status
+- Economy snapshot freshness
+
+## Rate Limits
+
+**Blizzard API**:
+- 100 requests per second (soft limit)
+- 36,000 requests per hour (hard limit)
+- Automatic retry with exponential backoff via tenacity
+
+**Redis**:
+- 50 max connections
+- TLS support for Heroku Redis
 
 ## Contributing
 
+Contributions are welcome. Please follow these guidelines:
 1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
-
-### Code Style
-- Follow PEP 8 guidelines
-- Use type hints for all functions
-- Add docstrings to all public functions
-- Write tests for new features
-
-## Troubleshooting
-
-### Common Issues
-
-**Redis Connection Failed**
-- Ensure Redis server is running
-- Check REDIS_URL format: `redis://user:password@host:port`
-- For Heroku, URL is automatically set
-
-**Blizzard API Errors**
-- Verify API credentials are correct
-- Check realm name spelling (e.g., 'area-52' not 'area 52')
-- Ensure proper game_version ('retail' or 'classic')
-
-**Character Not Found**
-- Character name is case-sensitive
-- Ensure realm name is correct
-- Character must exist and be recently active
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see LICENSE file for details.
-
-## Acknowledgments
-
-- Built with [FastMCP 2.0](https://github.com/jlowin/fastmcp) - Fast Model Context Protocol implementation
-- Powered by [Blizzard Entertainment API](https://develop.battle.net/)
-- Inspired by community projects:
-  - [WoWthing](https://github.com/ThingEngineering/wowthing-again) - Web tool for WoW character management with Redis job scheduling
-  - [Guild Roster Manager](https://github.com/TheGeneticsGuy/Guild-Roster-Manager) - In-game addon for guild management and data syncing
-  - [Raider.IO](https://raider.io) - Performance tracking with high-volume caching patterns
-
+MIT License - See LICENSE file for details
 
 ## Support
 
-For questions or support, please email: noah.mott1@gmail.com
+For issues, questions, or feature requests:
+- **Discord**: [Contact me](https://discord.com/users/479379710766481436)
+- **LinkedIn**: [Noah Mott](https://linkedin.com/in/noahmott)
+- **GitHub Issues**: [Open an issue](https://github.com/noahmott/mcp_wowconomics_server/issues)
 
----
+## Acknowledgments
 
-*Last updated: July 2025*
+- Built with [FastMCP](https://github.com/jlowin/fastmcp) by Marvin AI
+- Powered by [Blizzard Battle.net API](https://develop.battle.net/)
+- Deployed on [Heroku](https://heroku.com)
+- Activity tracking via [Supabase](https://supabase.com)
 
-[![Built with Claude](https://img.shields.io/badge/Built%20with-Claude-orange?style=for-the-badge&logo=anthropic&logoColor=white)](https://claude.ai)
+## Roadmap
 
-*Coding assisted by [Claude Code](https://claude.ai) developed by [Anthropic](https://anthropic.com)*
+- [ ] Mythic+ leaderboard tracking
+- [ ] PvP arena statistics and rankings
+- [ ] Cross-realm market comparison
+- [ ] Guild bank analysis
+- [ ] Discord bot integration
+- [ ] Automated market alerts
+- [ ] ML-based price prediction
