@@ -25,16 +25,29 @@ async def generate_raid_progress_chart(
     game_version: str = "retail"
 ) -> str:
     """
-    Generate visual raid progression charts and upload to Supabase Storage
+    Generate interactive raid progression charts and upload to Supabase Storage
+
+    Creates an interactive Plotly HTML chart showing guild raid progression with boss kill counts
+    across different difficulty levels. The chart is stored in Supabase and accessible via public URL.
 
     Args:
-        realm: Server realm
-        guild_name: Guild name
-        raid_tier: Raid tier ('current', 'dragonflight', 'shadowlands')
+        realm: Server realm name (e.g., 'lightbringer', 'stormrage')
+        guild_name: Guild name (e.g., 'legal-tender')
+        raid_tier: Raid tier to display. Options:
+            - 'current' or 'war-within': The War Within (Nerub-ar Palace)
+            - 'dragonflight': All Dragonflight raids (Amirdrassil, Aberrus, Vault)
+            - 'shadowlands': All Shadowlands raids
+            - 'bfa': Battle for Azeroth raids
+            - 'legion': Legion raids
+            - 'wod': Warlords of Draenor raids
+            - 'mop': Mists of Pandaria raids
+            - 'cataclysm': Cataclysm raids
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        Public URL to the chart image in Supabase Storage (click to view/download)
+        Public URL to interactive HTML chart in Supabase Storage (opens in browser, zoomable/hoverable)
+
+    Note: If guild has no progress in requested tier, returns "No raid progression data available" message
     """
     try:
         logger.info(f"Generating raid chart for {guild_name} on {realm} ({game_version})")

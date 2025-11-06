@@ -420,6 +420,44 @@ class ChartGenerator:
                     "tier": "Shadowlands S1",
                     "achievements": {"LFR": 14715, "Normal": 14717, "Heroic": 14718, "Mythic": 14719}
                 }
+            },
+            "bfa": {
+                "The Eternal Palace": {
+                    "tier": "Battle for Azeroth",
+                    "achievements": {"Guild Run": 13734}
+                }
+            },
+            "legion": {
+                "Vault of the Wardens": {
+                    "tier": "Legion",
+                    "achievements": {"Mythic Guild Run": 10861}
+                }
+            },
+            "wod": {
+                "Draenor Raids": {
+                    "tier": "Warlords of Draenor",
+                    "achievements": {"Glory": 9669}
+                }
+            },
+            "mop": {
+                "Mogu'shan Vaults": {
+                    "tier": "Mists of Pandaria",
+                    "achievements": {"Guild Run": 6668}
+                },
+                "Mogu'shan Palace": {
+                    "tier": "Mists of Pandaria",
+                    "achievements": {"Heroic Guild Run": 6766}
+                },
+                "Pandaria Raids": {
+                    "tier": "Mists of Pandaria",
+                    "achievements": {"Glory": 6682}
+                }
+            },
+            "cataclysm": {
+                "Cataclysm Raids": {
+                    "tier": "Cataclysm",
+                    "achievements": {"Glory": 4988}
+                }
             }
         }
 
