@@ -73,9 +73,12 @@ async def get_market_data(
         }
     """
     try:
-        # Normalize item_ids parameter (handle string representations)
+        # Normalize item_ids parameter (handle string representations, single ints, or lists)
         if item_ids is not None:
-            if isinstance(item_ids, str):
+            if isinstance(item_ids, int):
+                # Single integer - wrap in list
+                item_ids = [item_ids]
+            elif isinstance(item_ids, str):
                 import json
                 try:
                     parsed = json.loads(item_ids)
@@ -83,14 +86,18 @@ async def get_market_data(
                         if not all(isinstance(x, int) for x in parsed):
                             return error_response("All item IDs must be integers")
                         item_ids = parsed
+                    elif isinstance(parsed, int):
+                        # Single integer from string
+                        item_ids = [parsed]
                     else:
-                        return error_response("item_ids string must parse to a list of integers")
+                        return error_response("item_ids string must parse to an integer or list of integers")
                 except json.JSONDecodeError:
                     return error_response(f"item_ids string is not valid JSON: {item_ids}")
-            elif not isinstance(item_ids, list):
-                return error_response(f"item_ids must be a list of integers, got {type(item_ids).__name__}")
-            elif not all(isinstance(x, int) for x in item_ids):
-                return error_response("All item IDs must be integers")
+            elif isinstance(item_ids, list):
+                if not all(isinstance(x, int) for x in item_ids):
+                    return error_response("All item IDs must be integers")
+            else:
+                return error_response(f"item_ids must be an integer, list of integers, or JSON string, got {type(item_ids).__name__}")
 
         logger.info(f"Getting {market_type} market data ({game_version})")
 
