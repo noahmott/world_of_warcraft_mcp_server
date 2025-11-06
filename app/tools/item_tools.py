@@ -61,6 +61,23 @@ async def lookup_items(
                 return error_response("All item IDs must be integers")
             item_ids_list = item_ids
             single_item = len(item_ids_list) == 1
+        elif isinstance(item_ids, str):
+            # Handle string representation of a list (e.g., "[1, 2, 3]")
+            import json
+            try:
+                parsed = json.loads(item_ids)
+                if isinstance(parsed, list):
+                    if not all(isinstance(x, int) for x in parsed):
+                        return error_response("All item IDs must be integers")
+                    item_ids_list = parsed
+                    single_item = len(item_ids_list) == 1
+                elif isinstance(parsed, int):
+                    item_ids_list = [parsed]
+                    single_item = True
+                else:
+                    return error_response(f"item_ids string must parse to int or list of ints, got {type(parsed).__name__}")
+            except json.JSONDecodeError:
+                return error_response(f"item_ids string is not valid JSON: {item_ids}")
         else:
             return error_response(f"item_ids must be an integer or list of integers, got {type(item_ids).__name__}")
 
