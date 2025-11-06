@@ -2,7 +2,7 @@
 Item lookup and information tools for WoW Guild MCP Server
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 @mcp_tool()
 @with_supabase_logging
 async def lookup_items(
-    item_ids: List[int],
+    item_ids: Any,
     game_version: str = "retail",
     detailed: bool = True
 ) -> Dict[str, Any]:
@@ -25,12 +25,12 @@ async def lookup_items(
     Handles both single item lookups and batch lookups automatically.
 
     Args:
-        item_ids: List of item IDs to look up. For single item, use [item_id]
+        item_ids: Item ID (int) or list of item IDs ([int, int, ...]). Examples: 194641 or [194641, 123456]
         game_version: WoW version ('retail' or 'classic')
         detailed: True for full details, False for name + basic info only
 
     Returns:
-        For single item (item_ids=[123]):
+        For single item (item_ids=123):
         {
             "success": true,
             "item_id": 123,
@@ -51,13 +51,18 @@ async def lookup_items(
         }
     """
     try:
-        # Normalize input to list
-        if not isinstance(item_ids, list):
+        # Normalize input to list and validate
+        if isinstance(item_ids, int):
             item_ids_list = [item_ids]
             single_item = True
-        else:
+        elif isinstance(item_ids, list):
+            # Validate all items are integers
+            if not all(isinstance(x, int) for x in item_ids):
+                return error_response("All item IDs must be integers")
             item_ids_list = item_ids
             single_item = len(item_ids_list) == 1
+        else:
+            return error_response(f"item_ids must be an integer or list of integers, got {type(item_ids).__name__}")
 
         logger.info(f"Looking up {len(item_ids_list)} item(s) ({game_version})")
 
