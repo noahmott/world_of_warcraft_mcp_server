@@ -1539,15 +1539,17 @@ async def capture_economy_snapshot(
                                         key=lambda x: x[1]['auction_count'], 
                                         reverse=True)[:500]
                     
+                    item_dict: Dict[str, Any] = snapshot_data['items']  # type: ignore[assignment]
                     for item_id, stats in sorted_items:
-                        avg_price = stats['sum_price'] / stats['total_quantity'] if stats['total_quantity'] > 0 else 0
-                        snapshot_data['items'][str(item_id)] = {
-                            "quantity": stats['total_quantity'],
-                            "min_price": stats['min_price'] if stats['min_price'] != float('inf') else 0,
-                            "max_price": stats['max_price'],
+                        stat_dict: Dict[str, Any] = stats  # type: ignore[assignment]
+                        avg_price = stat_dict['sum_price'] / stat_dict['total_quantity'] if stat_dict['total_quantity'] > 0 else 0
+                        item_dict[str(item_id)] = {
+                            "quantity": stat_dict['total_quantity'],
+                            "min_price": stat_dict['min_price'] if stat_dict['min_price'] != float('inf') else 0,
+                            "max_price": stat_dict['max_price'],
                             "avg_price": int(avg_price),
-                            "auction_count": stats['auction_count'],
-                            "unique_sellers": len(stats['sellers'])
+                            "auction_count": stat_dict['auction_count'],
+                            "unique_sellers": len(stat_dict['sellers'])
                         }
                     
                     # Store snapshot with timestamp-based key (for historical data)
@@ -1686,8 +1688,8 @@ async def get_economy_trends(
                     continue
         
         # Sort trends by timestamp (oldest first)
-        for item_id in trends:
-            trends[item_id].sort(key=lambda x: x['timestamp'])
+        for item_id_str in trends:
+            trends[item_id_str].sort(key=lambda x: x['timestamp'])
         
         # Get item names
         item_names = {}

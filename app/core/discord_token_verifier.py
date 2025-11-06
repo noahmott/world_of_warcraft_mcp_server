@@ -116,7 +116,7 @@ class DiscordTokenVerifier(TokenVerifier):
                         logger.warning("Supabase client not available for user tracking")
 
                     # Return AccessToken with user claims
-                    return AccessToken(
+                    return AccessToken(  # type: ignore[call-arg]
                         token=token,
                         client_id=self.client_id,
                         user_id=user_id,
