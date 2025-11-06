@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 async def get_market_data(
     market_type: str = "commodities",
     realm: Optional[str] = None,
-    item_ids: Optional[List[int]] = None,
+    item_ids: Any = None,
     include_trends: bool = False,
     trend_hours: int = 24,
     max_results: int = 100,
@@ -42,7 +42,7 @@ async def get_market_data(
     Args:
         market_type: 'commodities' (region-wide: ore, herbs - DEFAULT) or 'auction_house' (realm-specific: gear, pets)
         realm: Server realm (e.g., 'stormrage'). ONLY required if market_type='auction_house', otherwise leave empty
-        item_ids: Filter to specific items by ID (None = top items by market value)
+        item_ids: Filter to specific items by ID. Can be: list of integers [1,2,3], string "[1,2,3]", or None (top items by market value)
         include_trends: Add historical price data from stored snapshots
         trend_hours: Hours of history (if include_trends=True, max 720/30 days)
         max_results: Max items to return (if item_ids=None)
