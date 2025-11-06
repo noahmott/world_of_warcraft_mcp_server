@@ -4,6 +4,7 @@ Testing and diagnostic tools for WoW Guild MCP Server
 
 import os
 import uuid
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 from .base import mcp_tool, with_supabase_logging, get_or_initialize_services

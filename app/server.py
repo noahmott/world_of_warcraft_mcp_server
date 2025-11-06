@@ -15,6 +15,7 @@ import httpx
 import json
 import os
 import uuid
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 
 # Third-party imports
@@ -25,7 +26,7 @@ from fastmcp.server.dependencies import get_http_headers
 
 # Local imports
 from .api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
-from .core.constants import KNOWN_RETAIL_REALMS, KNOWN_CLASSIC_REALMS as CLASSIC_REALMS
+from .core.constants import KNOWN_RETAIL_REALMS, KNOWN_CLASSIC_REALMS
 from .api.guild_optimizations import OptimizedGuildFetcher
 from .services.activity_logger import ActivityLogger, initialize_activity_logger
 from .services.auction_aggregator import AuctionAggregatorService
@@ -79,9 +80,9 @@ async def get_connected_realm_id(realm: str, game_version: str = "retail", clien
     realm_lower = realm.lower()
     
     # First check hardcoded IDs
-    if game_version == "classic" and realm_lower in CLASSIC_REALMS:
-        logger.info(f"Using known Classic realm ID for {realm}: {CLASSIC_REALMS[realm_lower]}")
-        return CLASSIC_REALMS[realm_lower]
+    if game_version == "classic" and realm_lower in KNOWN_CLASSIC_REALMS:
+        logger.info(f"Using known Classic realm ID for {realm}: {KNOWN_CLASSIC_REALMS[realm_lower]}")
+        return KNOWN_CLASSIC_REALMS[realm_lower]
     elif game_version == "retail" and realm_lower in KNOWN_RETAIL_REALMS:
         logger.info(f"Using known Retail realm ID for {realm}: {KNOWN_RETAIL_REALMS[realm_lower]}")
         return KNOWN_RETAIL_REALMS[realm_lower]
