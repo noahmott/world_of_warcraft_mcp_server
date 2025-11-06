@@ -507,14 +507,16 @@ async def lookup_item_details(
     game_version: str = "retail"
 ) -> Dict[str, Any]:
     """
-    Look up WoW item details by item ID
-    
+    Look up detailed information about a WoW item when you ALREADY KNOW the item ID.
+
+    If you DON'T know the item ID, use search_items_by_name instead!
+
     Args:
-        item_id: The item ID to look up
+        item_id: The item ID to look up (must already know this number)
         game_version: WoW version ('retail' or 'classic' only - classic-era servers currently unavailable)
-    
+
     Returns:
-        Item details including name, description, quality, etc.
+        Detailed item information including name, description, quality, stats, etc.
     """
     try:
         logger.info(f"Looking up item {item_id} ({game_version})")
@@ -572,8 +574,14 @@ async def search_items_by_name(
     """
     Search for WoW items by name to find their item IDs.
 
-    Use this when you need to find item IDs for items you only know the name of.
-    Perfect for looking up crafting materials, gems, ores, herbs, etc.
+    USE THIS TOOL FIRST when you only know the item name but need the item ID!
+    This is the PRIMARY tool for finding item IDs - use it before lookup_item_details or get_commodity_prices.
+
+    Perfect for finding IDs for:
+    - Crafting materials: "Aqirite", "Bismuth", "Ironclaw Ore"
+    - Gems: "Emerald", "Ruby", "Sapphire", "Onyx"
+    - Herbs: "Blessing Blossom", "Mycobloom"
+    - Reagents: "Crushed Gemstones", "Artisan's Mettle"
 
     Args:
         item_name: Item name to search for (partial matches work, e.g., "Aqirite", "Emerald")
@@ -581,7 +589,7 @@ async def search_items_by_name(
         game_version: WoW version ('retail' or 'classic')
 
     Returns:
-        List of matching items with their IDs, names, and quality
+        List of matching items with their IDs, names, quality, and class
     """
     try:
         logger.info(f"Searching for items matching: {item_name} ({game_version})")
