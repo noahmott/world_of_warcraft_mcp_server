@@ -754,53 +754,65 @@ async def get_auction_house_snapshot(
 ) -> Dict[str, Any]:
     """
     Get current auction house snapshot for a realm
-    
+
     Args:
         realm: Server realm (e.g., 'stormrage', 'area-52')
-        item_search: Optional item name or ID to search for
-        max_results: Maximum number of items to return
+        item_search: Optional comma-separated item IDs (e.g., '212505,212498') or single item ID
+        max_results: Maximum number of items to return (default 100, use 0 for all items)
         game_version: WoW version ('retail' or 'classic')
-    
+
     Returns:
         Current auction house data with market analysis
     """
     try:
         logger.info(f"Getting auction house data for realm {realm} ({game_version})")
-        
+
         async with BlizzardAPIClient(game_version=game_version) as client:
             # Get connected realm ID using helper function
             connected_realm_id = await get_connected_realm_id(realm, game_version, client)
-            
+
             if not connected_realm_id:
                 return {"error": f"Could not find connected realm ID for realm {realm}"}
-            
+
             # Get current auction data
             ah_data = await client.get_auction_house_data(connected_realm_id)
-            
+
             if not ah_data or 'auctions' not in ah_data:
                 return {"error": "No auction data available"}
-            
+
             # Aggregate auction data
             aggregated = auction_aggregator.aggregate_auction_data(ah_data['auctions'])
-            
+
             # Filter results if item search provided
             if item_search:
-                if item_search.isdigit():
-                    # Search by item ID
+                # Check if it's comma-separated item IDs
+                if ',' in item_search:
+                    item_ids = [int(id.strip()) for id in item_search.split(',') if id.strip().isdigit()]
+                    filtered = {item_id: aggregated[item_id] for item_id in item_ids if item_id in aggregated}
+                    aggregated = filtered
+                    logger.info(f"Filtered to {len(item_ids)} specific item IDs, found {len(filtered)} in AH")
+                elif item_search.isdigit():
+                    # Search by single item ID
                     item_id = int(item_search)
                     if item_id in aggregated:
                         aggregated = {item_id: aggregated[item_id]}
+                    else:
+                        aggregated = {}
                 else:
                     # Item name search would require additional API endpoints
                     logger.warning("Item name search not yet implemented")
-            
+
             # Sort by total market value and limit results
             sorted_items = sorted(
                 aggregated.items(),
                 key=lambda x: x[1]['total_market_value'],
                 reverse=True
-            )[:max_results]
-            
+            )
+
+            # Apply limit (0 means return all)
+            if max_results > 0:
+                sorted_items = sorted_items[:max_results]
+
             return {
                 "success": True,
                 "realm": realm,
