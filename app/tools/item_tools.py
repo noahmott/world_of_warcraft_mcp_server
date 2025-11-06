@@ -2,7 +2,7 @@
 Item lookup and information tools for WoW Guild MCP Server
 """
 
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List
 
 from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 @mcp_tool()
 @with_supabase_logging
 async def lookup_items(
-    item_ids: Union[int, List[int]],
+    item_ids: List[int],
     game_version: str = "retail",
     detailed: bool = True
 ) -> Dict[str, Any]:
@@ -25,12 +25,12 @@ async def lookup_items(
     Handles both single item lookups and batch lookups automatically.
 
     Args:
-        item_ids: Single item ID (int) or list of item IDs
+        item_ids: List of item IDs to look up. For single item, use [item_id]
         game_version: WoW version ('retail' or 'classic')
         detailed: True for full details, False for name + basic info only
 
     Returns:
-        For single item (item_ids=123):
+        For single item (item_ids=[123]):
         {
             "success": true,
             "item_id": 123,
@@ -52,12 +52,12 @@ async def lookup_items(
     """
     try:
         # Normalize input to list
-        if isinstance(item_ids, int):
+        if not isinstance(item_ids, list):
             item_ids_list = [item_ids]
             single_item = True
         else:
             item_ids_list = item_ids
-            single_item = False
+            single_item = len(item_ids_list) == 1
 
         logger.info(f"Looking up {len(item_ids_list)} item(s) ({game_version})")
 
