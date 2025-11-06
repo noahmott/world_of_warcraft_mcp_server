@@ -1,6 +1,7 @@
 # WoW Guild Analytics MCP Server
 
 ![MCPServer](https://badge.mcpx.dev?type=server)&nbsp;
+![FastMCP](https://img.shields.io/badge/-FastMCP-05122A?style=flat&logo=python)&nbsp;
 ![Python](https://img.shields.io/badge/-Python-05122A?style=flat&logo=python)&nbsp;
 ![FastAPI](https://img.shields.io/badge/-FastAPI-05122A?style=flat&logo=fastapi)&nbsp;
 ![Battle.net](https://img.shields.io/badge/-Battle.net-05122A?style=flat&logo=battle.net&logoColor=148EFF)&nbsp;
