@@ -21,13 +21,15 @@ async def get_realm_info(
     include_status: bool = True
 ) -> Dict[str, Any]:
     """
-    Get realm information including connected realm ID
+    Get WoW realm information (server details and connected realm ID)
 
-    Always returns the connected_realm_id which is required for auction house queries.
-    Optionally includes detailed status information.
+    IMPORTANT: This tool is ONLY needed for realm-specific auction house queries.
+    DO NOT call this tool for commodities market queries - commodities are region-wide and don't need a realm.
+
+    Use this to get the connected_realm_id for a specific server before querying its auction house.
 
     Args:
-        realm: Server realm name (e.g., 'stormrage', 'area-52', 'mankrik')
+        realm: Server realm name - REQUIRED (e.g., 'stormrage', 'area-52', 'mankrik'). User must specify which realm.
         game_version: WoW version ('retail' or 'classic')
         include_status: Include detailed status info (population, timezone, type)
 
