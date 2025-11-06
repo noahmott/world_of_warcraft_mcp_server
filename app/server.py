@@ -319,165 +319,24 @@ def with_supabase_logging(func):
 # ============================================================================
 
 # Set MCP instance for tool modules before importing
+# This allows the @mcp_tool() decorators in the modules to register tools
 from .tools.base import set_mcp_instance
 set_mcp_instance(mcp)
 
-# Import tool implementations from modules
+# Import tool modules - tools are automatically registered via @mcp_tool() decorators
+# No need to re-wrap them here!
 from .tools import guild_tools, member_tools, realm_tools, item_tools, auction_tools, visualization_tools
 
-
-# 1. GUILD TOOL
-@mcp.tool()
-@with_supabase_logging
-async def get_guild_member_list(
-    realm: str,
-    guild_name: str,
-    sort_by: str = "guild_rank",
-    limit: int = 50,
-    quick_mode: bool = False,
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """Get list of guild members with their basic information"""
-    return await guild_tools.get_guild_member_list(
-        realm=realm,
-        guild_name=guild_name,
-        sort_by=sort_by,
-        limit=limit,
-        quick_mode=quick_mode,
-        game_version=game_version
-    )
-
-
-# 2. CHARACTER TOOL
-@mcp.tool()
-@with_supabase_logging
-async def get_character_details(
-    realm: str,
-    character_name: str,
-    sections: List[str] = ["profile", "equipment", "specializations"],
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """Get detailed character information"""
-    return await member_tools.get_character_details(
-        realm=realm,
-        character_name=character_name,
-        sections=sections,
-        game_version=game_version
-    )
-
-
-# 3. REALM TOOL
-@mcp.tool()
-@with_supabase_logging
-async def get_realm_info(
-    realm: str,
-    game_version: str = "retail",
-    include_status: bool = True
-) -> Dict[str, Any]:
-    """Get realm information including connected realm ID"""
-    return await realm_tools.get_realm_info(
-        realm=realm,
-        game_version=game_version,
-        include_status=include_status
-    )
-
-
-# 4. ITEM TOOL
-@mcp.tool()
-@with_supabase_logging
-async def lookup_items(
-    item_ids: Union[int, List[int]],
-    game_version: str = "retail",
-    detailed: bool = True
-) -> Dict[str, Any]:
-    """Look up WoW item details by ID(s)"""
-    return await item_tools.lookup_items(
-        item_ids=item_ids,
-        game_version=game_version,
-        detailed=detailed
-    )
-
-
-# 5-6. AUCTION/MARKET TOOLS
-@mcp.tool()
-@with_supabase_logging
-async def get_market_data(
-    realm: str,
-    item_ids: Optional[List[int]] = None,
-    include_trends: bool = False,
-    trend_hours: int = 24,
-    max_results: int = 100,
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """Get current auction house data with optional historical trends"""
-    return await auction_tools.get_market_data(
-        realm=realm,
-        item_ids=item_ids,
-        include_trends=include_trends,
-        trend_hours=trend_hours,
-        max_results=max_results,
-        game_version=game_version
-    )
-
-
-@mcp.tool()
-@with_supabase_logging
-async def analyze_market(
-    realm: Optional[str] = None,
-    min_profit_margin: float = 20.0,
-    operation: str = "opportunities",
-    check_hours: int = 24,
-    realms: Optional[List[str]] = None,
-    max_results: int = 20,
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """Perform market analysis operations (opportunities or health checks)"""
-    return await auction_tools.analyze_market(
-        realm=realm,
-        min_profit_margin=min_profit_margin,
-        operation=operation,
-        check_hours=check_hours,
-        realms=realms,
-        max_results=max_results,
-        game_version=game_version
-    )
-
-
-# 7-8. VISUALIZATION TOOLS
-@mcp.tool()
-@with_supabase_logging
-async def generate_raid_progress_chart(
-    realm: str,
-    guild_name: str,
-    raid_tier: str = "current",
-    game_version: str = "retail"
-) -> str:
-    """Generate visual raid progression charts"""
-    return await visualization_tools.generate_raid_progress_chart(
-        realm=realm,
-        guild_name=guild_name,
-        raid_tier=raid_tier,
-        game_version=game_version
-    )
-
-
-@mcp.tool()
-@with_supabase_logging
-async def compare_member_performance(
-    realm: str,
-    guild_name: str,
-    member_names: List[str],
-    metric: str = "item_level",
-    game_version: str = "retail"
-) -> Dict[str, Any]:
-    """Compare performance metrics across guild members"""
-    return await visualization_tools.compare_member_performance(
-        realm=realm,
-        guild_name=guild_name,
-        member_names=member_names,
-        metric=metric,
-        game_version=game_version
-    )
+# Tools are now registered and ready to use
+# The 8 tools exposed are:
+# 1. get_guild_member_list (from guild_tools)
+# 2. get_character_details (from member_tools)
+# 3. get_realm_info (from realm_tools)
+# 4. lookup_items (from item_tools)
+# 5. get_market_data (from auction_tools)
+# 6. analyze_market (from auction_tools)
+# 7. generate_raid_progress_chart (from visualization_tools)
+# 8. compare_member_performance (from visualization_tools)
 
 
 # ============================================================================
