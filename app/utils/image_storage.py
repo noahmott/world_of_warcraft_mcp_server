@@ -66,14 +66,17 @@ class SupabaseImageStorage:
 
     async def upload_html(self, html_content: str, filename: str = None) -> Optional[str]:
         """
-        Upload HTML content to Supabase Storage and return public URL
+        Upload HTML content to Supabase Storage and return URL to serve via backend
+
+        Note: Supabase Storage blocks HTML files from rendering inline for security.
+        We store them in Supabase but serve them through our Heroku backend.
 
         Args:
             html_content: HTML string content
             filename: Optional filename (generates UUID if not provided)
 
         Returns:
-            Public URL to access the HTML, or None if upload fails
+            URL to access the HTML via our backend proxy, or None if upload fails
         """
         if not self.supabase:
             logger.error("Supabase client not initialized")
@@ -87,7 +90,7 @@ class SupabaseImageStorage:
             # Convert string to bytes
             html_bytes = html_content.encode('utf-8')
 
-            # Upload to Supabase Storage with proper HTML headers
+            # Upload to Supabase Storage
             response = self.supabase.storage.from_(self.bucket_name).upload(
                 path=filename,
                 file=html_bytes,
@@ -97,11 +100,13 @@ class SupabaseImageStorage:
                 }
             )
 
-            # Get public URL
-            public_url = self.supabase.storage.from_(self.bucket_name).get_public_url(filename)
+            # Instead of returning Supabase URL directly, return our backend proxy URL
+            # This allows us to serve HTML with proper headers
+            heroku_url = os.getenv("HEROKU_APP_URL", "https://wow-guild-mcp-server-7f17b3f6ea0a.herokuapp.com")
+            proxy_url = f"{heroku_url}/chart/{filename}"
 
-            logger.info(f"Uploaded HTML chart to Supabase: {public_url}")
-            return public_url
+            logger.info(f"Uploaded HTML chart to Supabase, serving via: {proxy_url}")
+            return proxy_url
 
         except Exception as e:
             logger.error(f"Error uploading HTML to Supabase: {str(e)}")

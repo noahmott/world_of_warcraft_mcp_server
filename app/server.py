@@ -67,6 +67,43 @@ else:
 # Create FastMCP server with OAuth authentication (if enabled)
 mcp: FastMCP = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
 
+# Get the underlying FastAPI app to add custom routes
+app = mcp.get_asgi_app()
+
+#  Add custom route to serve HTML charts from Supabase
+from fastapi import Response
+from fastapi.responses import HTMLResponse
+
+@app.get("/chart/{filename}")
+async def serve_chart(filename: str):
+    """
+    Serve HTML charts from Supabase Storage with proper content-type headers
+
+    Supabase Storage blocks HTML from rendering inline for security.
+    This endpoint fetches the HTML from Supabase and serves it with proper headers.
+    """
+    try:
+        from .services.supabase_client import supabase_client
+
+        # Download the file from Supabase
+        response = supabase_client.storage.from_("charts").download(filename)
+
+        # Serve with proper HTML content-type
+        return Response(
+            content=response,
+            media_type="text/html; charset=utf-8",
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "X-Content-Type-Options": "nosniff"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error serving chart {filename}: {str(e)}")
+        return HTMLResponse(
+            content=f"<html><body><h1>Chart Not Found</h1><p>Error loading chart: {str(e)}</p></body></html>",
+            status_code=404
+        )
+
 # Initialize service instances
 chart_generator = ChartGenerator()
 auction_aggregator = AuctionAggregatorService()
