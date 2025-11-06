@@ -256,7 +256,7 @@ async def get_economy_trends(
         # Limit hours to 30 days max
         hours = min(hours, 720)
 
-        trends: Dict[str, Any] = {}
+        trends: Dict[int, Any] = {}
         snapshot_base_key = f"economy_snapshot:{game_version}:{region}:{realm.lower()}"
         
         # Get all snapshots for the time period
@@ -310,7 +310,7 @@ async def get_economy_trends(
                     continue
         
         # Calculate trend statistics
-        trend_analysis = {}
+        trend_analysis: Dict[int, Any] = {}
         for item_id, price_history in trends.items():
             if price_history:
                 # Sort by timestamp

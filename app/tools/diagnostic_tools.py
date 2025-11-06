@@ -37,8 +37,8 @@ async def test_classic_auction_house() -> Dict[str, Any]:
             {"name": "Benediction", "id": 4728, "version": "classic"},
             {"name": "Grobbulus", "id": 4647, "version": "classic"}
         ]
-        
-        results = {}
+
+        results: Dict[str, Any] = {}
         
         # Test classic namespace only (classic-era currently unavailable)
         for game_version in ["classic"]:

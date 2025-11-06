@@ -96,8 +96,8 @@ class BlizzardAPIClient:
         if not self.client_id or not self.client_secret:
             raise ValueError("BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET must be set")
         
-        self.access_token = None
-        self.token_expires_at = None
+        self.access_token: Optional[str] = None
+        self.token_expires_at: Optional[datetime] = None
         self.session: Optional[ClientSession] = None
         self.rate_limiter = RateLimiter(100, 1)  # 100 requests per second
         
@@ -109,7 +109,7 @@ class BlizzardAPIClient:
         }
         
         # Cache for connected realm lookups
-        self._connected_realm_cache: Dict[str, int] = {}
+        self._connected_realm_cache: Dict[str, Dict[str, Any]] = {}
         
     async def __aenter__(self):
         """Async context manager entry"""

@@ -5,7 +5,7 @@ Base functionality for MCP tools including decorators and shared utilities
 import functools
 import time
 import uuid
-from typing import Any, Dict, Callable
+from typing import Any, Dict, Callable, Optional
 
 from ..utils.logging_utils import get_logger
 from ..utils.datetime_utils import utc_now_iso

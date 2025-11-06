@@ -59,7 +59,7 @@ else:
     logger.info("OAuth authentication is disabled - server running in public mode")
 
 # Create FastMCP server with OAuth authentication (if enabled)
-mcp = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
+mcp: FastMCP = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
 
 # Initialize service instances
 chart_generator = ChartGenerator()

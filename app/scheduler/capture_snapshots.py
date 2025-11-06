@@ -119,8 +119,8 @@ async def capture_economy_snapshot(
                     
                     results[realm] = {
                         "status": "success",
-                        "auctions": len(ah_data['auctions']),
-                        "unique_items": len(aggregated),
+                        "auctions": str(len(ah_data['auctions'])),
+                        "unique_items": str(len(aggregated)),
                         "timestamp": timestamp.isoformat()
                     }
                     snapshots_created += 1
