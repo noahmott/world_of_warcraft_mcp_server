@@ -44,18 +44,6 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 - Supabase (activity logging and user tracking)
 - SQLAlchemy 2.0 (database operations)
 
-**APIs & HTTP:**
-- httpx 0.28.1 (async HTTP client)
-- aiohttp 3.11.11 (additional async support)
-- tenacity 9.0.0 (retry logic)
-
-**Data Processing:**
-- numpy <2.0 (numerical operations)
-
-**Configuration:**
-- pydantic 2.11+ (settings validation)
-- python-dotenv 1.1 (environment management)
-
 ## Installation
 
 ### Prerequisites
@@ -76,7 +64,7 @@ cd mcp_wowconomics_server
 2. Create and activate a virtual environment:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate 
 ```
 
 3. Install dependencies:
@@ -87,7 +75,6 @@ pip install -r requirements.txt
 4. Configure environment variables:
 ```bash
 cp .env.example .env
-# Edit .env with your credentials (see Environment Variables section)
 ```
 
 5. Run the server:
@@ -161,7 +148,7 @@ ENABLE_REDIS_CACHING=true
 ENABLE_SUPABASE_LOGGING=true
 ENABLE_AI_ANALYSIS=true
 
-# API Timeouts (seconds)
+# API Timeouts (seconds) Necessary for reducing API traffick to Blizzard
 API_TIMEOUT_TOTAL=300
 API_TIMEOUT_CONNECT=10
 API_TIMEOUT_READ=60
@@ -187,7 +174,6 @@ heroku config:set BLIZZARD_CLIENT_ID=your_client_id
 heroku config:set BLIZZARD_CLIENT_SECRET=your_client_secret
 heroku config:set BLIZZARD_REGION=us
 heroku config:set WOW_VERSION=retail
-# Add other optional variables as needed
 ```
 
 4. Deploy:
@@ -282,7 +268,7 @@ curl http://localhost:8000/health
 
 Through Claude Desktop or any MCP client:
 ```
-Get the member list for guild "Legal Tender" on Lightbringer realm
+Get the member list for guild "Liquid" on Illidan realm
 ```
 
 Claude will automatically call:
@@ -290,8 +276,8 @@ Claude will automatically call:
 {
   "tool": "get_guild_member_list",
   "arguments": {
-    "realm": "lightbringer",
-    "guild_name": "Legal Tender",
+    "realm": "illidan",
+    "guild_name": "liquid",
     "sort_by": "guild_rank",
     "limit": 50,
     "game_version": "retail"
@@ -336,18 +322,6 @@ mcp_wowconomics_server/
 ├── Procfile                       # Heroku configuration
 ├── .env.example                   # Environment template
 └── README.md
-```
-
-### Running Tests
-```bash
-pytest tests/
-```
-
-### Code Style
-```bash
-black app/
-flake8 app/
-mypy app/
 ```
 
 ## Caching Strategy
@@ -412,10 +386,7 @@ For issues, questions, or feature requests:
 
 ## Roadmap
 
-- [ ] Mythic+ leaderboard tracking
+- [ ] Add additional authentication routes
 - [ ] PvP arena statistics and rankings
-- [ ] Cross-realm market comparison
-- [ ] Guild bank analysis
 - [ ] Discord bot integration
-- [ ] Automated market alerts
-- [ ] ML-based price prediction
+- [ ] Long-term collection and analysis of WoW commodities market for research
