@@ -9,7 +9,6 @@ import logging
 from typing import Optional, Dict, Any
 import httpx
 from mcp.server.auth.provider import TokenVerifier, AccessToken
-import asyncio
 from contextvars import ContextVar
 
 logger = logging.getLogger(__name__)

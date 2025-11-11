@@ -15,7 +15,6 @@ Supported providers:
 """
 
 import logging
-import os
 from typing import Optional
 
 from fastmcp.server.auth import OAuthProxy  # type: ignore[attr-defined]

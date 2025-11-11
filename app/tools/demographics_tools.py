@@ -5,11 +5,11 @@ Guild demographics analysis tools for WoW Guild MCP Server
 from typing import Dict, Any, List
 from collections import Counter
 
-from .base import mcp_tool, with_supabase_logging, get_or_initialize_services
+from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
 from ..utils.logging_utils import get_logger
 from ..utils.datetime_utils import utc_now_iso
-from ..utils.response_utils import success_response, error_response
+from ..utils.response_utils import error_response
 
 logger = get_logger(__name__)
 

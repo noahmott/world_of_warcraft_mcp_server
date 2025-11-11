@@ -2,10 +2,9 @@
 Character and member analysis tools for WoW Guild MCP Server
 """
 
-from datetime import datetime, timezone
 from typing import Dict, Any, List
 
-from .base import mcp_tool, with_supabase_logging, get_or_initialize_services
+from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
 from ..utils.logging_utils import get_logger
 from ..utils.datetime_utils import utc_now_iso
@@ -68,7 +67,7 @@ async def get_character_details(
                 # Handle case where profile might not be a dict
                 if not isinstance(profile, dict):
                     logger.error(f"Profile data is not a dict: {type(profile)} - {profile}")
-                    return error_response(f"Invalid profile data received from API")
+                    return error_response("Invalid profile data received from API")
 
                 # Safe navigation for nested fields - handle both nested and direct string formats
                 race_data = profile.get("race", {})

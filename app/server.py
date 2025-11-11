@@ -11,35 +11,27 @@ A comprehensive World of Warcraft guild analytics MCP server that provides:
 
 # Standard library imports
 import httpx
-import json
 import os
 import functools
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, Optional
 
 # Third-party imports
-import redis.asyncio as aioredis
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_http_headers
 
 # Local imports - API clients
-from .api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
-from .api.guild_optimizations import OptimizedGuildFetcher
 
 # Local imports - Services
-from .services.activity_logger import ActivityLogger, initialize_activity_logger
 from .services.auction_aggregator import AuctionAggregatorService
 from .services.market_history import MarketHistoryService
 from .services.supabase_client import SupabaseRealTimeClient
-from .services.supabase_streaming import initialize_streaming_service
 
 # Local imports - Utils
 from .utils.datetime_utils import utc_now, utc_now_iso, format_duration_ms
 from .utils.logging_utils import setup_logging, get_logger
 
 # Local imports - Core
-from .core.constants import KNOWN_RETAIL_REALMS, KNOWN_CLASSIC_REALMS
 
 # Load environment variables
 load_dotenv()
@@ -68,10 +60,7 @@ mcp: FastMCP = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
 auction_aggregator = AuctionAggregatorService()
 market_history = MarketHistoryService()
 
-# Global instances for Redis and logging
-redis_client: Optional[aioredis.Redis] = None
-activity_logger: Optional[ActivityLogger] = None
-streaming_service = None
+# Global instance for Supabase
 supabase_client: Optional[SupabaseRealTimeClient] = None
 
 
@@ -80,43 +69,14 @@ supabase_client: Optional[SupabaseRealTimeClient] = None
 # ============================================================================
 
 async def get_or_initialize_services():
-    """Lazy initialization of Redis, activity logger, and Supabase"""
-    global redis_client, activity_logger, streaming_service, supabase_client
+    """Lazy initialization of Supabase"""
+    global supabase_client
 
-    # Return if Redis and activity logger already initialized
-    if redis_client and activity_logger:
+    # Return if Supabase already initialized
+    if supabase_client:
         return
 
     try:
-        # Initialize Redis connection
-        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-
-        # Configure SSL for Heroku Redis
-        if redis_url.startswith("rediss://"):
-            logger.info("Configuring Redis with TLS for Heroku")
-            redis_client = await aioredis.from_url(
-                redis_url,
-                encoding="utf-8",
-                decode_responses=False,
-                max_connections=50,
-                ssl_cert_reqs=None
-            )
-        else:
-            redis_client = await aioredis.from_url(
-                redis_url,
-                encoding="utf-8",
-                decode_responses=False,
-                max_connections=50
-            )
-
-        # Test Redis connection
-        await redis_client.ping()
-        logger.info(f"Connected to Redis at {redis_url}")
-
-        # Initialize activity logger
-        activity_logger = await initialize_activity_logger(redis_client)
-        logger.info("Activity logger initialized")
-
         # Initialize Supabase
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
@@ -127,29 +87,23 @@ async def get_or_initialize_services():
         if supabase_url and supabase_key:
             try:
                 # Initialize direct Supabase client with service role key
-                if not supabase_client:
-                    supabase_client = SupabaseRealTimeClient(supabase_url, supabase_key)
-                    await supabase_client.initialize()
-                    logger.info("Supabase direct client initialized successfully")
+                supabase_client = SupabaseRealTimeClient(supabase_url, supabase_key)
+                await supabase_client.initialize()
+                logger.info("Supabase direct client initialized successfully")
 
-                    # Set Supabase client for OAuth token verifier
-                    from .core.discord_token_verifier import set_supabase_client
-                    set_supabase_client(supabase_client)
-                    logger.info("Supabase client set for OAuth user tracking")
+                # Set Supabase client for OAuth token verifier
+                from .core.discord_token_verifier import set_supabase_client
+                set_supabase_client(supabase_client)
+                logger.info("Supabase client set for OAuth user tracking")
 
-                # Initialize streaming service
-                streaming_service = await initialize_streaming_service(redis_client)
-                logger.info("Supabase streaming service initialized successfully")
+                # Propagate service instances to tool modules for activity logging
+                set_service_instances(supabase=supabase_client)
+                logger.info("Service instances propagated to tool modules")
             except Exception as e:
                 logger.error(f"Failed to initialize Supabase services: {e}")
-                streaming_service = None
                 supabase_client = None
         else:
             logger.warning("Supabase environment variables not set - logging to Supabase disabled")
-
-        # Propagate service instances to tool modules for activity logging
-        set_service_instances(supabase=supabase_client)
-        logger.info("Service instances propagated to tool modules")
 
     except Exception as e:
         logger.error(f"Failed to initialize services: {e}")
@@ -325,7 +279,6 @@ set_mcp_instance(mcp)
 
 # Import tool modules - tools are automatically registered via @mcp_tool() decorators
 # No need to re-wrap them here!
-from .tools import guild_tools, member_tools, realm_tools, item_tools, auction_tools, visualization_tools, demographics_tools
 
 # Tools are now registered and ready to use
 # The 9 tools exposed are:

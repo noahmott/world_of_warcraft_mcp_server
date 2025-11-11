@@ -5,7 +5,7 @@ This doesn't require MCP initialization
 
 import json
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 from ..api.blizzard_client import BlizzardAPIClient

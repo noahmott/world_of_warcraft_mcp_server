@@ -8,9 +8,8 @@ import asyncio
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from aiohttp import ClientSession, ClientResponseError
+from aiohttp import ClientSession
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-import json
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
@@ -442,7 +441,7 @@ class BlizzardAPIClient:
             
             # Check if we have connected_realm info for retail
             if self.game_version == "retail" and not result.get('connected_realm'):
-                logger.info(f"Direct realm result missing connected_realm for retail, need to find it via index")
+                logger.info("Direct realm result missing connected_realm for retail, need to find it via index")
                 raise BlizzardAPIError("Need connected realm index for retail", 404)
             
             return result
@@ -458,8 +457,8 @@ class BlizzardAPIClient:
                         return self._connected_realm_cache[realm_slug.lower()]
                     
                     # Get connected realm index
-                    index_endpoint = f"/data/wow/connected-realm/index"
-                    logger.info(f"Fetching connected realm index")
+                    index_endpoint = "/data/wow/connected-realm/index"
+                    logger.info("Fetching connected realm index")
                     index_results = await self.make_request(index_endpoint)
                     
                     if index_results.get('connected_realms'):
@@ -544,7 +543,7 @@ class BlizzardAPIClient:
             # If that also fails and it's classic, try the old search endpoint
             if self.game_version == "classic" and e.status_code is not None and e.status_code == 404:
                 logger.info(f"Trying classic realm search for {realm_slug}")
-                search_endpoint = f"/data/wow/search/realm"
+                search_endpoint = "/data/wow/search/realm"
                 params = {
                     "name.en_US": realm_slug,
                     "_pageSize": 100

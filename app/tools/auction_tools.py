@@ -3,16 +3,15 @@ Commodity market analysis tools for WoW Guild MCP Server
 """
 
 import json
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
-from .base import mcp_tool, with_supabase_logging, get_or_initialize_services
+from .base import mcp_tool, with_supabase_logging
 from ..services.auction_aggregator import AuctionAggregatorService
 from ..services.commodity_query_service import CommodityQueryService
 from ..services.supabase_client import get_supabase_client
 from ..utils.logging_utils import get_logger
 from ..utils.datetime_utils import utc_now_iso
-from ..utils.response_utils import success_response, error_response
+from ..utils.response_utils import error_response
 
 # Create auction aggregator instance
 auction_aggregator = AuctionAggregatorService()
@@ -89,7 +88,7 @@ async def get_market_data(
                 if not all(isinstance(x, int) for x in item_ids):
                     return error_response("All item IDs must be integers")
             else:
-                return error_response(f"item_ids must be an integer, list of integers, or JSON string")
+                return error_response("item_ids must be an integer, list of integers, or JSON string")
 
         logger.info(f"Getting commodity market data from Supabase ({region})")
 

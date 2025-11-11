@@ -1,7 +1,7 @@
 """
 WoW API utility functions for handling Classic and Retail differences
 """
-from typing import Dict, Any, Union, Optional
+from typing import Dict, Any, Union
 
 
 def get_localized_name(data: Dict[str, Any], field: str = "name", locale: str = "en_US") -> str:

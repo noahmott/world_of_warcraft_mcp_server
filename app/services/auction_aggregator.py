@@ -27,7 +27,7 @@ class AuctionAggregatorService:
 
         Returns dict of item_id -> aggregated metrics
         """
-        from typing import Any, Set, List as ListType
+        from typing import Any
         item_aggregates: Dict[int, Dict[str, Any]] = defaultdict(lambda: {
             'prices': [],
             'quantities': [],

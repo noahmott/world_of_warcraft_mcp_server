@@ -2,7 +2,6 @@
 Configuration management for WoW Guild MCP Server
 """
 
-import os
 from functools import lru_cache
 from typing import Optional
 from pydantic import Field
@@ -23,9 +22,6 @@ class Settings(BaseSettings):
     blizzard_region: str = Field(default="us", validation_alias="BLIZZARD_REGION")
     blizzard_locale: str = Field(default="en_US", validation_alias="BLIZZARD_LOCALE")
     wow_version: str = Field(default="retail", validation_alias="WOW_VERSION")
-    
-    # Redis Settings
-    redis_url: Optional[str] = Field(default=None, validation_alias="REDIS_URL")
 
     # Supabase Settings
     supabase_url: Optional[str] = Field(default=None, validation_alias="SUPABASE_URL")
@@ -49,7 +45,6 @@ class Settings(BaseSettings):
     discord_client_secret: Optional[str] = Field(default=None, validation_alias="DISCORD_CLIENT_SECRET")
 
     # Feature Flags
-    enable_redis_caching: bool = Field(default=True, validation_alias="ENABLE_REDIS_CACHING")
     enable_supabase_logging: bool = Field(default=True, validation_alias="ENABLE_SUPABASE_LOGGING")
     enable_ai_analysis: bool = Field(default=True, validation_alias="ENABLE_AI_ANALYSIS")
 

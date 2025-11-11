@@ -8,7 +8,7 @@ from .base import mcp_tool, with_supabase_logging
 from ..api.blizzard_client import BlizzardAPIClient, BlizzardAPIError
 from ..core.constants import KNOWN_CLASSIC_REALMS, KNOWN_RETAIL_REALMS
 from ..utils.logging_utils import get_logger
-from ..utils.response_utils import error_response, api_error_response
+from ..utils.response_utils import error_response
 
 logger = get_logger(__name__)
 
@@ -118,7 +118,7 @@ async def get_realm_info(
                         "connected_realm_id": known_id,
                         "game_version": game_version,
                         "source": "hardcoded",
-                        "message": f"API error, using hardcoded ID"
+                        "message": "API error, using hardcoded ID"
                     }
 
                     if include_status:

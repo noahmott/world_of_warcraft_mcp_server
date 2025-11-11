@@ -5,11 +5,9 @@ Handles authentication and real-time streaming of WoW guild data and activity lo
 """
 
 import os
-import asyncio
-import json
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
 
 from supabase import acreate_client, AsyncClient

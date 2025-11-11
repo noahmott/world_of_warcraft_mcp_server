@@ -78,22 +78,12 @@ CHART_DPI = 100  # DPI for generated charts
 CHART_DEFAULT_FIGSIZE = (10, 6)  # Default figure size (width, height)
 
 # ============================================================================
-# REDIS KEY PATTERNS
-# ============================================================================
-
-REDIS_KEY_GUILD_ROSTER = "guild:roster:{realm}:{guild_name}"
-REDIS_KEY_ECONOMY_SNAPSHOT = "economy:snapshot:{realm}:{timestamp}"
-REDIS_KEY_ECONOMY_LATEST = "economy:latest:{realm}"
-REDIS_KEY_CONNECTED_REALM = "realm:connected:{realm_slug}"
-
-# ============================================================================
 # ERROR MESSAGES
 # ============================================================================
 
 ERROR_REALM_NOT_FOUND = "Could not find connected realm ID for {realm}"
 ERROR_GUILD_NOT_FOUND = "Guild '{guild_name}' not found on realm '{realm}'"
 ERROR_CHARACTER_NOT_FOUND = "Character '{character_name}' not found on realm '{realm}'"
-ERROR_REDIS_CONNECTION = "Failed to connect to Redis: {error}"
 ERROR_API_REQUEST = "API request failed: {error}"
 
 # ============================================================================

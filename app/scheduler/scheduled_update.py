@@ -62,10 +62,10 @@ async def main():
         )
         
         if not lock_acquired:
-            print(f"Another scheduler instance is running, skipping...")
+            print("Another scheduler instance is running, skipping...")
             return
         
-        print(f"Lock acquired, proceeding with snapshot capture...")
+        print("Lock acquired, proceeding with snapshot capture...")
         
         # Call the function directly (it's not an MCP tool anymore)
         result = await capture_economy_snapshot(
@@ -76,7 +76,7 @@ async def main():
         )
         
         if result.get("success"):
-            print(f"\nSUCCESS! Captured economy snapshots:")
+            print("\nSUCCESS! Captured economy snapshots:")
             print(f"  - Snapshots created: {result.get('snapshots_created', 0)}")
             print(f"  - Snapshots skipped: {result.get('snapshots_skipped', 0)}")
             
@@ -119,7 +119,7 @@ async def main():
     # Release the lock
     if 'redis_client' in locals() and redis_client and 'lock_key' in locals():
         await redis_client.delete(lock_key)
-        print(f"Lock released")
+        print("Lock released")
     
     print(f"\n[{datetime.now()}] Scheduled update completed")
 
