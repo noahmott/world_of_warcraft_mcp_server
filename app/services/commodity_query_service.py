@@ -138,8 +138,9 @@ class CommodityQueryService:
     def _aggregate_by_hour(self, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Aggregate data points by hour"""
         from collections import defaultdict
+        from typing import List as ListType
 
-        hourly_data = defaultdict(lambda: {
+        hourly_data: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
             "prices": [],
             "quantities": [],
             "count": 0
@@ -155,16 +156,17 @@ class CommodityQueryService:
             hourly_data[hour_key]["count"] += point["auction_count"]
 
         # Calculate aggregates
-        result = []
+        result: ListType[Dict[str, Any]] = []
         for hour_key, data in sorted(hourly_data.items()):
-            prices = data["prices"]
+            prices: ListType[float] = data["prices"]
+            quantities: ListType[int] = data["quantities"]
             result.append({
                 "timestamp": hour_key,
                 "min_price": min(prices) if prices else 0,
                 "max_price": max(prices) if prices else 0,
                 "mean_price": sum(prices) / len(prices) if prices else 0,
                 "auction_count": data["count"],
-                "total_quantity": sum(data["quantities"])
+                "total_quantity": sum(quantities)
             })
 
         return result

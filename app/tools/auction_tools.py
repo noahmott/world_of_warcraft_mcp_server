@@ -95,6 +95,8 @@ async def get_market_data(
 
         # Get Supabase client
         supabase_client = await get_supabase_client()
+        if not supabase_client.client:
+            return error_response("Supabase client not initialized")
         commodity_service = CommodityQueryService(supabase_client.client)
 
         # Get latest commodity data
@@ -243,6 +245,8 @@ async def _find_commodity_opportunities(
 
         # Get Supabase client
         supabase_client = await get_supabase_client()
+        if not supabase_client.client:
+            return error_response("Supabase client not initialized")
         commodity_service = CommodityQueryService(supabase_client.client)
 
         # Get latest commodity data
@@ -316,6 +320,8 @@ async def _check_data_health(region: str) -> Dict[str, Any]:
         logger.info(f"Checking commodity data health ({region})")
 
         supabase_client = await get_supabase_client()
+        if not supabase_client.client:
+            return error_response("Supabase client not initialized")
         commodity_service = CommodityQueryService(supabase_client.client)
 
         health = await commodity_service.check_data_freshness(region=region)
