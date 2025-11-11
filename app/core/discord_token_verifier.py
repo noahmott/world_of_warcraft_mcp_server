@@ -10,16 +10,28 @@ from typing import Optional, Dict, Any
 import httpx
 from mcp.server.auth.provider import TokenVerifier, AccessToken
 import asyncio
+from contextvars import ContextVar
 
 logger = logging.getLogger(__name__)
 
 # Global reference to supabase client (will be set from main server)
 _supabase_client = None
 
+# Context variable to pass user info to tools
+_user_context: ContextVar[Optional[Dict[str, Any]]] = ContextVar('user_context', default=None)
+
 def set_supabase_client(client):
     """Set the global Supabase client for user tracking"""
     global _supabase_client
     _supabase_client = client
+
+def get_user_context() -> Optional[Dict[str, Any]]:
+    """Get the current user context"""
+    return _user_context.get()
+
+def set_user_context(user_info: Dict[str, Any]):
+    """Set the current user context"""
+    _user_context.set(user_info)
 
 
 class DiscordTokenVerifier(TokenVerifier):
@@ -91,6 +103,14 @@ class DiscordTokenVerifier(TokenVerifier):
                             )
                             if db_user_id:
                                 logger.info(f"Tracked user in Supabase: {db_user_id}")
+
+                                # Store user context for tools to access
+                                set_user_context({
+                                    "db_user_id": db_user_id,
+                                    "oauth_provider": "discord",
+                                    "oauth_user_id": user_id,
+                                    "user_info": user_data
+                                })
 
                                 # Check if user already has an active session
                                 # Only create a new session if they don't have one yet

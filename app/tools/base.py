@@ -71,69 +71,52 @@ def with_supabase_logging(func: Callable) -> Callable:
         error_message = None
         response_data = None
 
-        # Extract OAuth user information from MCP auth context
+        # Extract OAuth user information from HTTP headers (same as 795b2c3)
+        user_info = None
         oauth_provider = None
         oauth_user_id = None
-        user_info = None
+        db_user_id = None
 
         try:
-            from mcp.server.auth.middleware.auth_context import get_access_token as mcp_get_access_token
+            from fastmcp.server.dependencies import get_http_headers
+            import httpx
 
-            # Get the access token from MCP
-            access_token = mcp_get_access_token()
-            logger.info(f"Access token retrieved: {access_token is not None}")
+            # Get HTTP headers to extract the Authorization token
+            headers = get_http_headers(include_all=True)
+            auth_header = headers.get("authorization", "")
 
-            if access_token:
-                # Log what we have
-                logger.info(f"Access token type: {type(access_token)}")
-                logger.info(f"Access token client_id: {getattr(access_token, 'client_id', None)}")
-                logger.info(f"Access token user_id: {getattr(access_token, 'user_id', None)}")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]  # Remove "Bearer " prefix
 
-                # Check if it has claims in __dict__ or model_fields
-                if hasattr(access_token, '__dict__'):
-                    logger.info(f"Access token __dict__: {access_token.__dict__}")
-                if hasattr(access_token, 'model_fields'):
-                    logger.info(f"Access token model_fields: {list(access_token.model_fields.keys())}")
+                # Call Discord API directly to get user info
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(
+                            "https://discord.com/api/v10/users/@me",
+                            headers={"Authorization": f"Bearer {token}"},
+                            timeout=10.0
+                        )
+                        if response.status_code == 200:
+                            user_data = response.json()
+                            oauth_user_id = user_data.get("id")
+                            oauth_provider = "discord"
+                            user_info = user_data
 
-                # Try different attribute names
-                user_info = None
-                if hasattr(access_token, 'claims'):
-                    user_info = access_token.claims
-                elif hasattr(access_token, 'user_info'):
-                    user_info = access_token.user_info
-                elif hasattr(access_token, 'payload'):
-                    user_info = access_token.payload
+                            logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
 
-                # Try accessing as dict
-                if not user_info and hasattr(access_token, '__dict__'):
-                    claims_dict = access_token.__dict__.get('claims')
-                    if claims_dict:
-                        user_info = claims_dict
-
-                if user_info:
-                    logger.info(f"User info keys: {list(user_info.keys())}")
-
-                    # Extract provider and user ID from claims
-                    # Discord user structure: {id, username, email, ...}
-                    # Google user structure: {sub, email, name, ...}
-                    oauth_user_id = user_info.get('id') or user_info.get('sub')
-
-                    # Determine provider from issuer or audience in claims
-                    issuer = user_info.get('iss', '')
-                    audience = user_info.get('aud', '')
-
-                    if 'discord' in issuer.lower() or 'discord' in audience.lower():
-                        oauth_provider = 'discord'
-                    elif 'google' in issuer.lower() or 'google' in audience.lower():
-                        oauth_provider = 'google'
-
-                    logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
-                else:
-                    logger.info("Access token has no claims/user_info/payload attribute")
-            else:
-                logger.info("No access token available")
+                            # Look up the db user_id from Supabase
+                            if supabase_client:
+                                try:
+                                    result = await supabase_client.client.table("users").select("id").eq("oauth_provider", oauth_provider).eq("oauth_user_id", oauth_user_id).execute()
+                                    if result.data and len(result.data) > 0:
+                                        db_user_id = result.data[0]['id']
+                                        logger.info(f"Found db user_id: {db_user_id}")
+                                except Exception as e:
+                                    logger.warning(f"Failed to lookup user in database: {e}")
+                except Exception as e:
+                    logger.warning(f"Failed to verify token with Discord API: {e}")
         except Exception as e:
-            logger.info(f"Failed to extract user context: {e}", exc_info=True)
+            logger.debug(f"Failed to extract user context: {e}")
 
         request_data = {}
         import inspect
@@ -156,7 +139,8 @@ def with_supabase_logging(func: Callable) -> Callable:
                 duration_ms=(time.time() - start_time) * 1000,
                 oauth_provider=oauth_provider,
                 oauth_user_id=oauth_user_id,
-                user_info=user_info
+                user_info=user_info,
+                db_user_id=db_user_id
             )
 
             return result
@@ -171,7 +155,8 @@ def with_supabase_logging(func: Callable) -> Callable:
                 duration_ms=(time.time() - start_time) * 1000,
                 oauth_provider=oauth_provider,
                 oauth_user_id=oauth_user_id,
-                user_info=user_info
+                user_info=user_info,
+                db_user_id=db_user_id
             )
 
             raise
@@ -185,7 +170,8 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
                          duration_ms: Optional[float] = None,
                          oauth_provider: Optional[str] = None,
                          oauth_user_id: Optional[str] = None,
-                         user_info: Optional[Dict[str, Any]] = None):
+                         user_info: Optional[Dict[str, Any]] = None,
+                         db_user_id: Optional[str] = None):
     """Log activity to Supabase with OAuth user tracking"""
     try:
         if not supabase_client:
@@ -194,30 +180,8 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
 
         from ..services.supabase_client import ActivityLogEntry
 
-        # Track user if OAuth info is available
-        user_id = None
-
-        if oauth_provider and oauth_user_id and user_info:
-            try:
-                # Upsert user in database
-                user_data = {
-                    "email": user_info.get('email'),
-                    "username": user_info.get('username') or user_info.get('name'),
-                    "display_name": user_info.get('global_name') or user_info.get('display_name') or user_info.get('name'),
-                    "avatar_url": user_info.get('avatar')
-                }
-
-                user_id = await supabase_client.upsert_user(
-                    oauth_provider=oauth_provider,
-                    oauth_user_id=oauth_user_id,
-                    user_data=user_data
-                )
-
-                if user_id:
-                    logger.debug(f"Tracked user {user_id} ({oauth_provider}/{oauth_user_id})")
-            except Exception as e:
-                logger.error(f"Failed to track user: {e}")
-                # Continue with logging even if user tracking fails
+        # Use provided db_user_id directly (already looked up in decorator)
+        user_id = db_user_id
 
         # Create activity log entry with user tracking
         log_entry = ActivityLogEntry(
@@ -234,14 +198,15 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
             metadata={
                 "source": "fastmcp",
                 "direct_logging": True,
-                "authenticated": user_id is not None
+                "authenticated": user_id is not None,
+                "oauth_provider": oauth_provider
             }
         )
 
         # Stream to Supabase
         success = await supabase_client.stream_activity_log(log_entry)
         if success:
-            logger.debug(f"Successfully logged {tool_name} to Supabase with user tracking")
+            logger.debug(f"Successfully logged {tool_name} to Supabase with user_id: {user_id}")
         else:
             logger.warning(f"Failed to log {tool_name} to Supabase - no error thrown")
 
