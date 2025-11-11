@@ -71,22 +71,17 @@ def with_supabase_logging(func: Callable) -> Callable:
         error_message = None
         response_data = None
 
-        # Extract OAuth user information using FastMCP's get_access_token()
+        # Extract OAuth user information from MCP auth context
         oauth_provider = None
         oauth_user_id = None
         user_info = None
 
         try:
-            from fastmcp.server.dependencies import get_access_token
+            from mcp.server.auth.middleware.auth_context import get_access_token as mcp_get_access_token
 
-            # Get the access token from FastMCP
-            access_token = get_access_token()
+            # Get the access token from MCP
+            access_token = mcp_get_access_token()
             logger.info(f"Access token retrieved: {access_token is not None}")
-
-            if access_token:
-                logger.info(f"Access token has claims: {hasattr(access_token, 'claims')}")
-                if hasattr(access_token, 'claims'):
-                    logger.info(f"Claims available: {access_token.claims is not None}")
 
             if access_token and access_token.claims:
                 user_info = access_token.claims
@@ -101,9 +96,9 @@ def with_supabase_logging(func: Callable) -> Callable:
                 issuer = user_info.get('iss', '')
                 audience = user_info.get('aud', '')
 
-                if 'discord' in issuer or 'discord' in audience:
+                if 'discord' in issuer.lower() or 'discord' in audience.lower():
                     oauth_provider = 'discord'
-                elif 'google' in issuer or 'google' in audience:
+                elif 'google' in issuer.lower() or 'google' in audience.lower():
                     oauth_provider = 'google'
 
                 logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
