@@ -222,15 +222,16 @@ class CommodityQueryService:
             last_update = datetime.fromisoformat(response.data[0]["captured_at"].replace('Z', '+00:00'))
             age = datetime.now(timezone.utc) - last_update
             minutes_old = age.total_seconds() / 60
+            hours_old = minutes_old / 60
 
-            # Consider healthy if updated within last 2 hours
-            healthy = minutes_old < 120
+            # Consider healthy if updated within last 6 hours (n8n runs every 6 hours)
+            healthy = minutes_old < 360
 
             return {
                 "healthy": healthy,
                 "last_update": last_update.isoformat(),
-                "minutes_old": round(minutes_old, 1),
-                "message": f"Last update {round(minutes_old)} minutes ago"
+                "hours_old": round(hours_old, 1),
+                "message": f"Last update {round(hours_old, 1)} hours ago"
             }
 
         except AttributeError as e:
