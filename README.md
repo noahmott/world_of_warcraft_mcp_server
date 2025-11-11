@@ -4,6 +4,7 @@
 ![FastMCP](https://img.shields.io/badge/-FastMCP-05122A?style=flat)&nbsp;
 ![Python](https://img.shields.io/badge/-Python-05122A?style=flat&logo=python)&nbsp;
 ![FastAPI](https://img.shields.io/badge/-FastAPI-05122A?style=flat&logo=fastapi)&nbsp;
+![n8n](https://img.shields.io/badge/-n8n-05122A?style=flat&logo=n8n&logoColor=EA4B71)&nbsp;
 ![Battle.net](https://img.shields.io/badge/-Battle.net-05122A?style=flat&logo=battle.net&logoColor=148EFF)&nbsp;
 ![Redis](https://img.shields.io/badge/-Redis-05122A?style=flat&logo=redis&logoColor=DD0031)&nbsp;
 ![Heroku](https://img.shields.io/badge/-Heroku-05122A?style=flat&logo=heroku&logoColor=430098)&nbsp;
@@ -15,7 +16,12 @@ A Model Context Protocol (MCP) server providing comprehensive World of Warcraft 
 
 ## Overview
 
-This MCP server integrates with Claude Desktop (or any MCP client) to provide real-time WoW guild management, player analysis, and commodity market economics data. Commodity pricing data is collected via n8n workflows and stored in Supabase for fast, reliable access. Guild and character data uses the Blizzard Battle.net API with Redis caching for performance.
+This MCP server integrates with Claude Desktop (or any MCP client) to provide real-time WoW guild management, player analysis, and commodity market economics data.
+
+**Data Pipeline Architecture:**
+- **Commodity Market Data**: Automated n8n workflows pull from Blizzard API hourly → Store in Supabase → MCP queries database (10-100x faster than API)
+- **Guild & Character Data**: Direct Blizzard API calls with Redis caching (15-day TTL for rosters)
+- **Activity Tracking**: All MCP tool usage logged to Supabase with Discord OAuth user attribution
 
 ## Features
 
