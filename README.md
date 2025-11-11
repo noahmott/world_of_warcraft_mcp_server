@@ -11,18 +11,18 @@
 <a href="https://discord.com/users/479379710766481436"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?&style=flat&logo=discord&logoColor=white" /></a>&nbsp;
 <a href="https://linkedin.com/in/noahmott"><img alt="LinkedIn" src="https://img.shields.io/badge/linkedin%20-%230077B5.svg?&style=flat&logo=linkedin&logoColor=white"/></a>&nbsp;
 
-A Model Context Protocol (MCP) server providing comprehensive World of Warcraft guild analytics, auction house data, and market insights through the Blizzard Battle.net API. Built with FastMCP 2.0 and deployed on Heroku.
+A Model Context Protocol (MCP) server providing comprehensive World of Warcraft guild analytics and commodity market insights. Built with FastMCP 2.0 and deployed on Heroku with n8n data collection pipeline.
 
 ## Overview
 
-This MCP server integrates with Claude Desktop (or any MCP client) to provide real-time WoW guild management, player analysis, and auction house economics data. It supports both Retail and Classic WoW with proper namespace handling, Redis caching for performance, and optional Supabase logging for user activity tracking.
+This MCP server integrates with Claude Desktop (or any MCP client) to provide real-time WoW guild management, player analysis, and commodity market economics data. Commodity pricing data is collected via n8n workflows and stored in Supabase for fast, reliable access. Guild and character data uses the Blizzard Battle.net API with Redis caching for performance.
 
 ## Features
 
 - **Guild Management**: Retrieve guild rosters, member details, and raid progression data
 - **Character Analysis**: Deep character inspection including equipment, specializations, achievements, and statistics
-- **Auction House Economics**: Real-time commodity and auction house data with trend analysis
-- **Market Intelligence**: Identify profitable trading opportunities and track price trends
+- **Commodity Market Economics**: Real-time commodity pricing data (ore, herbs, reagents) with historical trend analysis
+- **Market Intelligence**: Identify profitable trading opportunities with price variance analysis
 - **Demographics Analytics**: Comprehensive guild demographic breakdowns by class, race, spec, and item level
 - **Realm Information**: Server status and connected realm ID lookup
 - **Item Lookup**: Batch item data retrieval with detailed metadata
@@ -40,9 +40,9 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 - Uvicorn/Gunicorn (ASGI server)
 
 **Data & Caching:**
-- Redis 6.2 (caching and performance optimization)
-- Supabase (activity logging and user tracking)
-- SQLAlchemy 2.0 (database operations)
+- Redis 6.2 (guild roster caching)
+- Supabase (commodity market data storage and activity logging)
+- n8n (automated commodity data collection from Blizzard API)
 
 ## Installation
 
@@ -221,16 +221,16 @@ Batch item lookup by ID with detailed metadata.
 - **Use Case**: Get item names, quality, prices, and stats for market analysis
 
 ### 5. `get_market_data`
-Current market prices for commodities or auction house items.
-- **Parameters**: `market_type`, `realm`, `item_ids`, `include_trends`, `trend_hours`, `max_results`, `game_version`
-- **Market Types**: `commodities` (region-wide), `auction_house` (realm-specific)
-- **Use Case**: Real-time market snapshots with optional historical trends
+Current commodity market prices (ore, herbs, reagents, etc.) from Supabase.
+- **Parameters**: `item_ids`, `include_trends`, `trend_hours`, `max_results`, `region`
+- **Data Source**: Supabase (collected via n8n from Blizzard API)
+- **Use Case**: Real-time region-wide commodity market snapshots with optional historical trends
 
 ### 6. `analyze_market`
-Find profitable trading opportunities or check economy snapshot health.
-- **Parameters**: `operation`, `market_type`, `realm`, `min_profit_margin`, `check_hours`, `realms`, `max_results`, `game_version`
-- **Operations**: `opportunities` (find deals), `health_check` (system status)
-- **Use Case**: Identify underpriced items or monitor data collection health
+Find profitable commodity trading opportunities or check data collection health.
+- **Parameters**: `operation`, `min_profit_margin`, `max_results`, `region`
+- **Operations**: `opportunities` (find deals), `health_check` (check n8n data freshness)
+- **Use Case**: Identify commodities with high price variance or monitor data pipeline health
 
 ### 7. `get_guild_raid_progression`
 Guild achievement data including raid progression.
@@ -324,12 +324,17 @@ mcp_wowconomics_server/
 └── README.md
 ```
 
-## Caching Strategy
+## Data Architecture
 
-The server implements intelligent Redis caching:
-- **Guild Rosters**: 15-day cache with age tracking
-- **Economy Snapshots**: 30-day retention with hourly captures
-- **Market Trends**: Rolling 30-day historical data
+**Commodity Market Data** (via n8n + Supabase):
+- **Collection**: n8n workflow pulls from Blizzard API hourly
+- **Storage**: Supabase `commodity_auctions` table
+- **Retention**: Configurable (90+ days supported based on storage)
+- **Performance**: Direct database queries - much faster than API calls
+
+**Guild & Character Data** (via Redis + Blizzard API):
+- **Guild Rosters**: 15-day Redis cache with age tracking
+- **Character Data**: Real-time API calls (no caching for accuracy)
 - **Cache Keys**: Namespaced by game version, region, and realm
 
 ## Monitoring & Logging
@@ -344,7 +349,7 @@ The server implements intelligent Redis caching:
 - Redis connectivity status
 - Blizzard API rate limits
 - Supabase streaming status
-- Economy snapshot freshness
+- Commodity data freshness (n8n workflow health)
 
 ## Rate Limits
 
