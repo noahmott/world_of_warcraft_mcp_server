@@ -51,9 +51,9 @@ class CommodityQueryService:
                 logger.error("Supabase client is None")
                 return []
 
-            # Build query
+            # Build query (case-insensitive region match)
             query = self.client.table("commodity_auctions").select("*")
-            query = query.eq("region", region)
+            query = query.ilike("region", region)
             query = query.gte("captured_at", cutoff_time.isoformat())
 
             # Filter by item IDs if provided
@@ -108,8 +108,8 @@ class CommodityQueryService:
         try:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-            # Query historical data
-            response = await self.client.table("commodity_auctions").select("*").eq(
+            # Query historical data (case-insensitive region match)
+            response = await self.client.table("commodity_auctions").select("*").ilike(
                 "region", region
             ).in_(
                 "item_id", item_ids
@@ -202,10 +202,10 @@ class CommodityQueryService:
                     "error": "Supabase client not initialized"
                 }
 
-            # Get most recent record
+            # Get most recent record (case-insensitive region match)
             response = await self.client.table("commodity_auctions").select(
                 "captured_at"
-            ).eq(
+            ).ilike(
                 "region", region
             ).order(
                 "captured_at", desc=True
