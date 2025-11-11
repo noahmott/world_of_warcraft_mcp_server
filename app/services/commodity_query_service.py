@@ -8,15 +8,19 @@ import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta, timezone
 
-from supabase import AsyncClient
-
 logger = logging.getLogger(__name__)
 
 
 class CommodityQueryService:
     """Service for querying commodity auction data from Supabase"""
 
-    def __init__(self, supabase_client: AsyncClient):
+    def __init__(self, supabase_client: Any):
+        """
+        Initialize with Supabase AsyncClient
+
+        Args:
+            supabase_client: The AsyncClient from SupabaseRealTimeClient.client
+        """
         self.client = supabase_client
 
     async def get_latest_commodity_prices(
@@ -41,6 +45,11 @@ class CommodityQueryService:
         try:
             # Calculate cutoff time
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_lookback)
+
+            # Validate client
+            if not self.client:
+                logger.error("Supabase client is None")
+                return []
 
             # Build query
             query = self.client.table("commodity_auctions").select("*")
@@ -68,8 +77,15 @@ class CommodityQueryService:
                 logger.warning(f"No commodity data found for region {region}")
                 return []
 
+        except AttributeError as e:
+            logger.error(f"AttributeError in commodity query - client type: {type(self.client)}, error: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return []
         except Exception as e:
             logger.error(f"Error querying commodity prices from Supabase: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return []
 
     async def get_commodity_trends(
@@ -178,6 +194,14 @@ class CommodityQueryService:
         Returns health status of data collection
         """
         try:
+            # Validate client
+            if not self.client:
+                logger.error("Supabase client is None")
+                return {
+                    "healthy": False,
+                    "error": "Supabase client not initialized"
+                }
+
             # Get most recent record
             response = await self.client.table("commodity_auctions").select(
                 "captured_at"
@@ -209,8 +233,18 @@ class CommodityQueryService:
                 "message": f"Last update {round(minutes_old)} minutes ago"
             }
 
+        except AttributeError as e:
+            logger.error(f"AttributeError in data freshness check - client type: {type(self.client)}, error: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return {
+                "healthy": False,
+                "error": f"AttributeError: {str(e)}"
+            }
         except Exception as e:
             logger.error(f"Error checking data freshness: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "healthy": False,
                 "error": str(e)
