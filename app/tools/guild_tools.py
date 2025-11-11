@@ -42,63 +42,8 @@ async def get_guild_member_list(
     """
     try:
         logger.info(f"Getting member list for {guild_name} on {realm} ({game_version})")
-        
-        # Initialize services if needed
-        service_mgr = await get_or_initialize_services()
-        redis_client = service_mgr.redis_client
-        
-        # Check Redis cache first
-        cache_key = f"guild_roster:{game_version}:{realm}:{guild_name.lower()}"
-        cached_data = None
-        cache_age_days = None
-        
-        if redis_client:
-            try:
-                # Get cached data
-                cached_json = await redis_client.get(cache_key)
-                if cached_json:
-                    cached_data = json.loads(cached_json.decode())  # Decode bytes to string
-                    
-                    # Check cache age
-                    stored_date = datetime.fromisoformat(cached_data.get("cached_at", ""))
-                    cache_age = utc_now() - stored_date
-                    cache_age_days = cache_age.days
-                    
-                    # If cache is less than 15 days old, use it
-                    if cache_age_days < 15:
-                        logger.info(f"Using cached guild roster (age: {cache_age_days} days)")
-                        
-                        # Extract members and apply sorting/limit
-                        members = cached_data["members"][:limit]
-                        
-                        # Sort members based on criteria
-                        if sort_by == "guild_rank":
-                            members.sort(key=lambda x: x.get("guild_rank", 999))
-                        elif sort_by == "level":
-                            members.sort(key=lambda x: x.get("level", 0), reverse=True)
-                        elif sort_by == "name":
-                            members.sort(key=lambda x: x.get("name", "").lower())
-                        
-                        return {
-                            "success": True,
-                            "guild_name": guild_name,
-                            "realm": realm,
-                            "members": members,
-                            "members_returned": len(members),
-                            "total_members": cached_data["total_members"],
-                            "sorted_by": sort_by,
-                            "quick_mode": quick_mode,
-                            "guild_summary": cached_data.get("guild_info", {}),
-                            "from_cache": True,
-                            "cache_age_days": cache_age_days,
-                            "timestamp": utc_now_iso()
-                        }
-                    else:
-                        logger.info(f"Cache too old ({cache_age_days} days), fetching fresh data")
-            except Exception as e:
-                logger.warning(f"Error reading cache: {e}")
-        
-        # Default API-based fetching
+
+        # Fetch fresh data from Blizzard API
         async with BlizzardAPIClient(game_version=game_version) as client:
             # Get guild roster
             roster = await client.get_guild_roster(realm, guild_name)

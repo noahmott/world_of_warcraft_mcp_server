@@ -14,10 +14,7 @@ logger = get_logger(__name__)
 
 # Global service references
 mcp = None
-redis_client = None
-activity_logger = None
 supabase_client = None
-streaming_service = None
 
 
 def set_mcp_instance(mcp_instance):
@@ -26,17 +23,11 @@ def set_mcp_instance(mcp_instance):
     mcp = mcp_instance
 
 
-def set_service_instances(redis=None, activity=None, supabase=None, streaming=None):
+def set_service_instances(supabase=None):
     """Set global service instances for tools to use"""
-    global redis_client, activity_logger, supabase_client, streaming_service
-    if redis:
-        redis_client = redis
-    if activity:
-        activity_logger = activity
+    global supabase_client
     if supabase:
         supabase_client = supabase
-    if streaming:
-        streaming_service = streaming
 
 
 def mcp_tool(*args, **kwargs):
@@ -218,13 +209,10 @@ async def log_to_supabase(tool_name: str, request_data: Dict[str, Any],
 async def get_or_initialize_services():
     """Get or initialize required services"""
     from ..core.service_manager import get_service_manager
-    
+
     service_mgr = await get_service_manager()
-    
-    global redis_client, activity_logger, supabase_client, streaming_service
-    redis_client = service_mgr.redis_client
-    activity_logger = service_mgr.activity_logger
+
+    global supabase_client
     supabase_client = service_mgr.supabase_client
-    streaming_service = service_mgr.streaming_service
-    
+
     return service_mgr

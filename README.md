@@ -6,7 +6,6 @@
 ![FastAPI](https://img.shields.io/badge/-FastAPI-05122A?style=flat&logo=fastapi)&nbsp;
 ![n8n](https://img.shields.io/badge/-n8n-05122A?style=flat&logo=n8n&logoColor=EA4B71)&nbsp;
 ![Battle.net](https://img.shields.io/badge/-Battle.net-05122A?style=flat&logo=battle.net&logoColor=148EFF)&nbsp;
-![Redis](https://img.shields.io/badge/-Redis-05122A?style=flat&logo=redis&logoColor=DD0031)&nbsp;
 ![Heroku](https://img.shields.io/badge/-Heroku-05122A?style=flat&logo=heroku&logoColor=430098)&nbsp;
 ![Supabase](https://img.shields.io/badge/-Supabase-05122A?style=flat&logo=supabase&logoColor=3ECF8E)&nbsp;
 <a href="https://discord.com/users/479379710766481436"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?&style=flat&logo=discord&logoColor=white" /></a>&nbsp;
@@ -20,7 +19,7 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 
 **Data Pipeline Architecture:**
 - **Commodity Market Data**: Automated n8n workflows pull from Blizzard API hourly → Store in Supabase → MCP queries database (10-100x faster than API)
-- **Guild & Character Data**: Direct Blizzard API calls with Redis caching (15-day TTL for rosters)
+- **Guild & Character Data**: Direct Blizzard API calls for real-time data
 - **Activity Tracking**: All MCP tool usage logged to Supabase with Discord OAuth user attribution
 
 ## Features
@@ -33,7 +32,6 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 - **Realm Information**: Server status and connected realm ID lookup
 - **Item Lookup**: Batch item data retrieval with detailed metadata
 - **Visualization**: Raid progress tracking and member performance comparisons
-- **Redis Caching**: Optimized response times with intelligent cache management
 - **OAuth Authentication**: Discord OAuth integration for user tracking
 - **Activity Logging**: Supabase integration for usage analytics and monitoring
 
@@ -45,8 +43,7 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 - FastMCP 2.0+ (Model Context Protocol)
 - Uvicorn/Gunicorn (ASGI server)
 
-**Data & Caching:**
-- Redis 6.2 (guild roster caching)
+**Data Storage:**
 - Supabase (commodity market data storage and activity logging)
 - n8n (automated commodity data collection from Blizzard API)
 
@@ -55,9 +52,8 @@ This MCP server integrates with Claude Desktop (or any MCP client) to provide re
 ### Prerequisites
 
 - Python 3.13+
-- Redis server (local or Heroku Redis)
 - Blizzard Battle.net API credentials ([Get them here](https://develop.battle.net/))
-- Supabase account (optional, for activity logging)
+- Supabase account (for commodity market data and activity logging)
 
 ### Local Setup
 
@@ -126,9 +122,9 @@ For production (Heroku):
 BLIZZARD_CLIENT_ID=your_blizzard_client_id_here
 BLIZZARD_CLIENT_SECRET=your_blizzard_client_secret_here
 
-# Redis Configuration (REQUIRED)
-REDIS_URL=redis://localhost:6379      # Local development
-# Heroku automatically sets REDIS_URL for rediss://... (TLS)
+# Supabase Configuration (REQUIRED for commodity data)
+SUPABASE_URL=                         # Your Supabase project URL
+SUPABASE_SERVICE_KEY=                 # Service role key (bypasses RLS)
 ```
 
 ### Optional
@@ -140,19 +136,10 @@ OAUTH_BASE_URL=http://localhost:8000  # Your server's public URL
 DISCORD_CLIENT_ID=                    # Discord OAuth credentials
 DISCORD_CLIENT_SECRET=
 
-# Supabase (Optional - Activity Logging)
-SUPABASE_URL=                         # Your Supabase project URL
-SUPABASE_SERVICE_KEY=                 # Service role key (bypasses RLS)
-
 # Server Configuration
 PORT=8000
 HOST=0.0.0.0
 DEBUG=false
-
-# Feature Flags
-ENABLE_REDIS_CACHING=true
-ENABLE_SUPABASE_LOGGING=true
-ENABLE_AI_ANALYSIS=true
 
 # API Timeouts (seconds) Necessary for reducing API traffick to Blizzard
 API_TIMEOUT_TOTAL=300
@@ -169,30 +156,25 @@ API_TIMEOUT_READ=60
 heroku create your-app-name
 ```
 
-2. Add Redis addon:
-```bash
-heroku addons:create heroku-redis:mini
-```
-
-3. Set environment variables:
+2. Set environment variables:
 ```bash
 heroku config:set BLIZZARD_CLIENT_ID=your_client_id
 heroku config:set BLIZZARD_CLIENT_SECRET=your_client_secret
 heroku config:set BLIZZARD_REGION=us
 heroku config:set WOW_VERSION=retail
+heroku config:set SUPABASE_URL=your_supabase_url
+heroku config:set SUPABASE_SERVICE_KEY=your_service_key
 ```
 
-4. Deploy:
+3. Deploy:
 ```bash
 git push heroku main
 ```
 
-5. Verify deployment:
+4. Verify deployment:
 ```bash
 heroku logs --tail
 ```
-
-The server will automatically use the `REDIS_URL` environment variable set by the Heroku Redis addon.
 
 ### Docker Deployment (Alternative)
 
@@ -338,10 +320,9 @@ mcp_wowconomics_server/
 - **Retention**: Configurable (90+ days supported based on storage)
 - **Performance**: Direct database queries - much faster than API calls
 
-**Guild & Character Data** (via Redis + Blizzard API):
-- **Guild Rosters**: 15-day Redis cache with age tracking
-- **Character Data**: Real-time API calls (no caching for accuracy)
-- **Cache Keys**: Namespaced by game version, region, and realm
+**Guild & Character Data** (via Blizzard API):
+- **Guild Rosters**: Real-time API calls for up-to-date member data
+- **Character Data**: Real-time API calls with detailed profile information
 
 ## Monitoring & Logging
 
@@ -352,9 +333,8 @@ mcp_wowconomics_server/
 - Error tracking and debugging
 
 **Health Checks**:
-- Redis connectivity status
 - Blizzard API rate limits
-- Supabase streaming status
+- Supabase connectivity status
 - Commodity data freshness (n8n workflow health)
 
 ## Rate Limits
@@ -364,9 +344,9 @@ mcp_wowconomics_server/
 - 36,000 requests per hour (hard limit)
 - Automatic retry with exponential backoff via tenacity
 
-**Redis**:
-- 50 max connections
-- TLS support for Heroku Redis
+**Supabase**:
+- Database queries for commodity data
+- Activity logging with Discord OAuth attribution
 
 ## Contributing
 

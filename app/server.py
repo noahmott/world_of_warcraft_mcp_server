@@ -148,12 +148,7 @@ async def get_or_initialize_services():
             logger.warning("Supabase environment variables not set - logging to Supabase disabled")
 
         # Propagate service instances to tool modules for activity logging
-        set_service_instances(
-            redis=redis_client,
-            activity=activity_logger,
-            supabase=supabase_client,
-            streaming=streaming_service
-        )
+        set_service_instances(supabase=supabase_client)
         logger.info("Service instances propagated to tool modules")
 
     except Exception as e:

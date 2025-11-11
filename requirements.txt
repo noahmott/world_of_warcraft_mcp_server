@@ -13,9 +13,6 @@ tenacity==9.0.0
 # Database
 sqlalchemy==2.0.32
 
-# Caching
-redis==6.2.0
-
 # Supabase integration
 supabase>=2.14.0
 
