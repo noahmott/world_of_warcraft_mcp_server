@@ -83,27 +83,42 @@ def with_supabase_logging(func: Callable) -> Callable:
             access_token = mcp_get_access_token()
             logger.info(f"Access token retrieved: {access_token is not None}")
 
-            if access_token and access_token.claims:
-                user_info = access_token.claims
-                logger.info(f"Claims keys: {list(user_info.keys())}")
+            if access_token:
+                # Log available attributes
+                logger.info(f"Access token attributes: {dir(access_token)}")
+                logger.info(f"Access token type: {type(access_token)}")
 
-                # Extract provider and user ID from claims
-                # Discord user structure: {id, username, email, ...}
-                # Google user structure: {sub, email, name, ...}
-                oauth_user_id = user_info.get('id') or user_info.get('sub')
+                # Try different attribute names
+                user_info = None
+                if hasattr(access_token, 'claims'):
+                    user_info = access_token.claims
+                elif hasattr(access_token, 'user_info'):
+                    user_info = access_token.user_info
+                elif hasattr(access_token, 'payload'):
+                    user_info = access_token.payload
 
-                # Determine provider from issuer or audience in claims
-                issuer = user_info.get('iss', '')
-                audience = user_info.get('aud', '')
+                if user_info:
+                    logger.info(f"User info keys: {list(user_info.keys())}")
 
-                if 'discord' in issuer.lower() or 'discord' in audience.lower():
-                    oauth_provider = 'discord'
-                elif 'google' in issuer.lower() or 'google' in audience.lower():
-                    oauth_provider = 'google'
+                    # Extract provider and user ID from claims
+                    # Discord user structure: {id, username, email, ...}
+                    # Google user structure: {sub, email, name, ...}
+                    oauth_user_id = user_info.get('id') or user_info.get('sub')
 
-                logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+                    # Determine provider from issuer or audience in claims
+                    issuer = user_info.get('iss', '')
+                    audience = user_info.get('aud', '')
+
+                    if 'discord' in issuer.lower() or 'discord' in audience.lower():
+                        oauth_provider = 'discord'
+                    elif 'google' in issuer.lower() or 'google' in audience.lower():
+                        oauth_provider = 'google'
+
+                    logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+                else:
+                    logger.info("Access token has no claims/user_info/payload attribute")
             else:
-                logger.info("No access token or claims available")
+                logger.info("No access token available")
         except Exception as e:
             logger.info(f"Failed to extract user context: {e}", exc_info=True)
 
