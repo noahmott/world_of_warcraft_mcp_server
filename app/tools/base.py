@@ -84,9 +84,16 @@ def with_supabase_logging(func: Callable) -> Callable:
             logger.info(f"Access token retrieved: {access_token is not None}")
 
             if access_token:
-                # Log available attributes
-                logger.info(f"Access token attributes: {dir(access_token)}")
+                # Log what we have
                 logger.info(f"Access token type: {type(access_token)}")
+                logger.info(f"Access token client_id: {getattr(access_token, 'client_id', None)}")
+                logger.info(f"Access token user_id: {getattr(access_token, 'user_id', None)}")
+
+                # Check if it has claims in __dict__ or model_fields
+                if hasattr(access_token, '__dict__'):
+                    logger.info(f"Access token __dict__: {access_token.__dict__}")
+                if hasattr(access_token, 'model_fields'):
+                    logger.info(f"Access token model_fields: {list(access_token.model_fields.keys())}")
 
                 # Try different attribute names
                 user_info = None
@@ -96,6 +103,12 @@ def with_supabase_logging(func: Callable) -> Callable:
                     user_info = access_token.user_info
                 elif hasattr(access_token, 'payload'):
                     user_info = access_token.payload
+
+                # Try accessing as dict
+                if not user_info and hasattr(access_token, '__dict__'):
+                    claims_dict = access_token.__dict__.get('claims')
+                    if claims_dict:
+                        user_info = claims_dict
 
                 if user_info:
                     logger.info(f"User info keys: {list(user_info.keys())}")
