@@ -147,6 +147,15 @@ async def get_or_initialize_services():
         else:
             logger.warning("Supabase environment variables not set - logging to Supabase disabled")
 
+        # Propagate service instances to tool modules for activity logging
+        set_service_instances(
+            redis=redis_client,
+            activity=activity_logger,
+            supabase=supabase_client,
+            streaming=streaming_service
+        )
+        logger.info("Service instances propagated to tool modules")
+
     except Exception as e:
         logger.error(f"Failed to initialize services: {e}")
 
@@ -316,7 +325,7 @@ def with_supabase_logging(func):
 
 # Set MCP instance for tool modules before importing
 # This allows the @mcp_tool() decorators in the modules to register tools
-from .tools.base import set_mcp_instance
+from .tools.base import set_mcp_instance, set_service_instances
 set_mcp_instance(mcp)
 
 # Import tool modules - tools are automatically registered via @mcp_tool() decorators
