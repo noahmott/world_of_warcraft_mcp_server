@@ -13,7 +13,6 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 
 from supabase import acreate_client, AsyncClient
-from supabase.lib.client_options import ClientOptions
 
 logger = logging.getLogger(__name__)
 
@@ -64,15 +63,10 @@ class SupabaseRealTimeClient:
             if not self.url or not self.key:
                 raise ValueError("URL and key are required")
 
-            # For service role key, don't persist sessions or refresh tokens
-            # These options are for user auth and will override the service role key
+            # Create client with service role key (no special options needed)
             self.client = await acreate_client(
                 self.url,
-                self.key,
-                options=ClientOptions(  # type: ignore[arg-type]
-                    auto_refresh_token=False,
-                    persist_session=False
-                )
+                self.key
             )
             logger.info("Supabase client initialized successfully")
         except Exception as e:
