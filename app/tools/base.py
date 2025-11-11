@@ -81,9 +81,16 @@ def with_supabase_logging(func: Callable) -> Callable:
 
             # Get the access token from FastMCP
             access_token = get_access_token()
+            logger.info(f"Access token retrieved: {access_token is not None}")
+
+            if access_token:
+                logger.info(f"Access token has claims: {hasattr(access_token, 'claims')}")
+                if hasattr(access_token, 'claims'):
+                    logger.info(f"Claims available: {access_token.claims is not None}")
 
             if access_token and access_token.claims:
                 user_info = access_token.claims
+                logger.info(f"Claims keys: {list(user_info.keys())}")
 
                 # Extract provider and user ID from claims
                 # Discord user structure: {id, username, email, ...}
@@ -99,9 +106,11 @@ def with_supabase_logging(func: Callable) -> Callable:
                 elif 'google' in issuer or 'google' in audience:
                     oauth_provider = 'google'
 
-                logger.debug(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+                logger.info(f"Authenticated user: {oauth_provider}/{oauth_user_id}")
+            else:
+                logger.info("No access token or claims available")
         except Exception as e:
-            logger.debug(f"Failed to extract user context: {e}")
+            logger.info(f"Failed to extract user context: {e}", exc_info=True)
 
         request_data = {}
         import inspect
