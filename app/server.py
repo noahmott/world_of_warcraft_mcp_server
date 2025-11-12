@@ -278,7 +278,16 @@ from .tools.base import set_mcp_instance, set_service_instances
 set_mcp_instance(mcp)
 
 # Import tool modules - tools are automatically registered via @mcp_tool() decorators
-# No need to re-wrap them here!
+# Imports needed for side effects (tool registration), not direct usage
+from .tools import (  # noqa: F401
+    guild_tools,
+    member_tools,
+    realm_tools,
+    item_tools,
+    auction_tools,
+    comparison_tools,
+    demographics_tools,
+)
 
 # Tools are now registered and ready to use
 # The 9 tools exposed are:
