@@ -36,9 +36,6 @@ class ActivityLogEntry:
     oauth_user_id: Optional[str] = None
 
 
-# Removed GuildDataEntry - keeping guild data in Redis for performance
-
-
 class SupabaseRealTimeClient:
     """Supabase client for real-time data streaming"""
 
@@ -113,8 +110,6 @@ class SupabaseRealTimeClient:
         except Exception as e:
             logger.error(f"Error streaming activity log: {e}")
             return False
-    
-    # Removed stream_guild_data - keeping guild data in Redis for performance
 
     async def upsert_user(self, oauth_provider: str, oauth_user_id: str,
                          user_data: Dict[str, Any]) -> Optional[str]:
@@ -271,9 +266,7 @@ class SupabaseRealTimeClient:
             
         except Exception as e:
             logger.error(f"Error creating activity channel: {e}")
-    
-    # Removed guild data channel - keeping guild data in Redis for performance
-    
+
     async def broadcast_activity_update(self, message: Dict[str, Any]) -> bool:
         """Broadcast activity update via real-time channel"""
         try:
@@ -284,15 +277,11 @@ class SupabaseRealTimeClient:
         except Exception as e:
             logger.error(f"Error broadcasting activity update: {e}")
             return False
-    
-    # Removed guild data broadcasting - keeping guild data in Redis for performance
-    
+
     def _handle_activity_change(self, payload):
         """Handle real-time activity log changes"""
         logger.info(f"Activity log change detected: {payload}")
-    
-    # Removed guild data change handler - keeping guild data in Redis for performance
-    
+
     async def close(self) -> None:
         """Close all channels and connections"""
         try:
@@ -331,5 +320,4 @@ async def initialize_supabase_client() -> SupabaseRealTimeClient:
     logger.info("Initializing Supabase client for activity logs and events")
     client = await get_supabase_client()
     await client.create_activity_channel()
-    # Guild data remains in Redis for performance
     return client

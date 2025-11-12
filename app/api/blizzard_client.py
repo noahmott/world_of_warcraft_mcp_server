@@ -169,11 +169,9 @@ class BlizzardAPIClient:
         # Default to configured region if not in EU list
         return self.region
     
-    async def make_request_with_region(self, endpoint: str, params: Optional[Dict] = None, 
+    async def make_request_with_region(self, endpoint: str, params: Optional[Dict] = None,
                                      detected_region: Optional[str] = None) -> Dict[str, Any]:
         """Make API request with region detection for better error handling"""
-        # Use detected region if provided, otherwise use default
-        use_region = detected_region or self.region
         original_base_url = self.base_url
         
         try:
