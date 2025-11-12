@@ -420,7 +420,7 @@ For issues, questions, or feature requests:
 
 ## Acknowledgments
 
-- Built with [FastMCP](https://github.com/jlowin/fastmcp) by Marvin AI
+- Built with [FastMCP](https://github.com/jlowin/fastmcp) by @jlowin
 - Powered by [Blizzard Battle.net API](https://develop.battle.net/)
 - Deployed on [Heroku](https://heroku.com)
 - Activity tracking via [Supabase](https://supabase.com)
