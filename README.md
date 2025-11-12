@@ -141,7 +141,7 @@ PORT=8000
 HOST=0.0.0.0
 DEBUG=false
 
-# API Timeouts (seconds) Necessary for reducing API traffic to Blizzard
+# API Timeouts (seconds) - Necessary for reducing API traffic to Blizzard
 API_TIMEOUT_TOTAL=300
 API_TIMEOUT_CONNECT=10
 API_TIMEOUT_READ=60
