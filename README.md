@@ -339,7 +339,7 @@ mcp_wowconomics_server/
 │   │   ├── realm_tools.py         # Realm lookup tools
 │   │   ├── item_tools.py          # Item data tools
 │   │   ├── auction_tools.py       # Market analysis tools
-│   │   ├── visualization_tools.py # Chart generation tools
+│   │   ├── comparison_tools.py    # Member comparison tools
 │   │   └── demographics_tools.py  # Demographics analysis
 │   ├── services/
 │   │   ├── activity_logger.py     # Activity logging service

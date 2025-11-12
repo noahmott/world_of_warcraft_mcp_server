@@ -288,8 +288,8 @@ set_mcp_instance(mcp)
 # 4. lookup_items (from item_tools)
 # 5. get_market_data (from auction_tools)
 # 6. analyze_market (from auction_tools)
-# 7. generate_raid_progress_chart (from visualization_tools)
-# 8. compare_member_performance (from visualization_tools)
+# 7. get_guild_raid_progression (from comparison_tools)
+# 8. compare_member_performance (from comparison_tools)
 # 9. get_guild_demographics (from demographics_tools)
 
 
@@ -310,7 +310,7 @@ def main():
         port = int(os.getenv("PORT", "8000"))
 
         logger.info("WoW Guild MCP Server with FastMCP 2.0")
-        logger.info("Tools: Guild analysis, visualization, and auction house")
+        logger.info("Tools: Guild analysis, member comparison, and commodity market")
         logger.info(f"Registered tools: {len(mcp._tool_manager._tools)}")
         logger.info(f"HTTP Server: 0.0.0.0:{port}")
 
