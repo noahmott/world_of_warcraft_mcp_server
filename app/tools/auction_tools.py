@@ -98,11 +98,11 @@ async def get_market_data(
             return error_response("Supabase client not initialized")
         commodity_service = CommodityQueryService(supabase_client.client)
 
-        # Get latest commodity data
+        # Get latest commodity data (7 hours to account for 6-hour n8n schedule + buffer)
         commodity_data = await commodity_service.get_latest_commodity_prices(
             region=region,
             item_ids=item_ids,
-            hours_lookback=1,
+            hours_lookback=7,
             max_results=max_results
         )
 
@@ -248,11 +248,11 @@ async def _find_commodity_opportunities(
             return error_response("Supabase client not initialized")
         commodity_service = CommodityQueryService(supabase_client.client)
 
-        # Get latest commodity data
+        # Get latest commodity data (7 hours to account for 6-hour n8n schedule + buffer)
         commodity_data = await commodity_service.get_latest_commodity_prices(
             region=region,
             item_ids=None,
-            hours_lookback=1,
+            hours_lookback=7,
             max_results=1000  # Get more data to find opportunities
         )
 
