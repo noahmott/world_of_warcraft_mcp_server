@@ -130,22 +130,72 @@ SUPABASE_SERVICE_KEY=                 # Service role key (bypasses RLS)
 ### Optional
 
 ```bash
-# OAuth Authentication (Optional)
-OAUTH_PROVIDER=                       # Options: discord (empty = disabled)
-OAUTH_BASE_URL=http://localhost:8000  # Your server's public URL
-DISCORD_CLIENT_ID=                    # Discord OAuth credentials
-DISCORD_CLIENT_SECRET=
+# OAuth Authentication (see OAuth Configuration section for setup)
+OAUTH_PROVIDER=discord               # Options: discord (empty = disabled)
+OAUTH_BASE_URL=http://localhost:8000 # Your server's public URL
+DISCORD_CLIENT_ID=                   # From Discord Developer Portal
+DISCORD_CLIENT_SECRET=               # From Discord Developer Portal
 
 # Server Configuration
 PORT=8000
 HOST=0.0.0.0
 DEBUG=false
 
-# API Timeouts (seconds) Necessary for reducing API traffick to Blizzard
+# API Timeouts (seconds) Necessary for reducing API traffic to Blizzard
 API_TIMEOUT_TOTAL=300
 API_TIMEOUT_CONNECT=10
 API_TIMEOUT_READ=60
 ```
+
+## OAuth Configuration with Discord
+
+This server uses FastMCP's `OAuthProxy` for Discord authentication, which automatically handles the OAuth flow including authorization, token exchange, and validation. When enabled, all MCP tool calls are attributed to Discord users and logged in Supabase for activity tracking.
+
+### How It Works
+
+**FastMCP OAuthProxy** creates OAuth endpoints automatically when passed to the MCP server:
+
+```python
+# app/core/auth.py
+auth_provider = OAuthProxy(
+    upstream_authorization_endpoint="https://discord.com/api/oauth2/authorize",
+    upstream_token_endpoint="https://discord.com/api/oauth2/token",
+    upstream_client_id=DISCORD_CLIENT_ID,
+    upstream_client_secret=DISCORD_CLIENT_SECRET,
+    base_url=OAUTH_BASE_URL,
+    token_verifier=DiscordTokenVerifier()
+)
+
+mcp = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
+```
+
+This automatically creates:
+- `/oauth/authorize` - Initiates Discord OAuth flow
+- `/oauth/callback` - Handles Discord's redirect after authentication
+- `/oauth/token` - Token exchange for MCP clients
+
+**Custom Token Verification**: Discord uses opaque tokens (not JWTs), so we implement a custom `DiscordTokenVerifier` ([app/core/discord_token_verifier.py](app/core/discord_token_verifier.py:36)) that validates tokens by calling Discord's API and tracks users in Supabase.
+
+**Activity Logging**: The `with_supabase_logging` decorator ([app/server.py](app/server.py:160)) extracts the Bearer token, verifies it with Discord, looks up the user in Supabase, and logs all tool calls with full user attribution.
+
+### Setup
+
+1. **Create Discord Application** at [Discord Developer Portal](https://discord.com/developers/applications)
+   - Navigate to OAuth2 settings
+   - Add redirect URI: `https://your-app-name.herokuapp.com/oauth/callback`
+   - Copy Client ID and Client Secret
+
+2. **Set Environment Variables**:
+```bash
+OAUTH_PROVIDER=discord
+OAUTH_BASE_URL=https://your-app-name.herokuapp.com
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_CLIENT_SECRET=your_discord_client_secret
+```
+
+3. **OAuth Scopes**: Automatically requests `identify` and `email` from Discord
+
+**To disable OAuth**: Leave `OAUTH_PROVIDER` empty and activity logs will record as "anonymous"
 
 ## Deployment
 
