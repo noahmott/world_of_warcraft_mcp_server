@@ -109,7 +109,7 @@ class CommodityQueryService:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
 
             # Query the pre-aggregated commodity_trends table
-            response = self.client.table("commodity_trends").select(
+            query = self.client.table("commodity_trends").select(
                 "item_id,captured_at,min_price,max_price,mean_price,median_price,auction_count,total_quantity"
             ).ilike(
                 "region", region
@@ -117,7 +117,9 @@ class CommodityQueryService:
                 "item_id", item_ids
             ).gte(
                 "captured_at", cutoff_time.isoformat()
-            ).order("item_id").order("captured_at").execute()
+            ).order("item_id").order("captured_at")
+
+            response = await query.execute()
 
             if not response.data:
                 logger.warning(f"No historical data found for {len(item_ids)} items")
