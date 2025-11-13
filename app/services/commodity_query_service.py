@@ -95,7 +95,7 @@ class CommodityQueryService:
         hours: int = 24
     ) -> Dict[int, List[Dict[str, Any]]]:
         """
-        Get historical price trends for specific items using SQL aggregation
+        Get historical price trends for specific items from pre-aggregated trends table
 
         Args:
             item_ids: List of item IDs to get trends for
@@ -108,17 +108,9 @@ class CommodityQueryService:
         try:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-            # Use RPC call to execute SQL aggregation query
-            # This groups by item_id and captured_at (snapshot time), aggregating prices
-            from supabase import PostgrestAPIError
-
-            # Build SQL query to aggregate by snapshot
-            item_ids_str = ','.join(str(id) for id in item_ids)
-
-            # Execute raw SQL via rpc or use PostgREST aggregation
-            # For now, let's use PostgREST select with proper ordering
-            response = await self.client.table("commodity_auctions").select(
-                "item_id,captured_at,unit_price,quantity"
+            # Query the pre-aggregated commodity_trends table
+            response = self.client.table("commodity_trends").select(
+                "item_id,captured_at,min_price,max_price,mean_price,median_price,auction_count,total_quantity"
             ).ilike(
                 "region", region
             ).in_(
@@ -131,40 +123,25 @@ class CommodityQueryService:
                 logger.warning(f"No historical data found for {len(item_ids)} items")
                 return {}
 
-            # Group by item_id and snapshot timestamp in Python (since PostgREST doesn't support GROUP BY)
+            # Group by item_id
             from collections import defaultdict
-
-            # Structure: {item_id: {snapshot_timestamp: {"prices": [], "quantities": []}}}
-            item_snapshots: Dict[int, Dict[str, Dict[str, list]]] = defaultdict(lambda: defaultdict(lambda: {"prices": [], "quantities": []}))
+            aggregated_trends: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
 
             for record in response.data:
                 item_id = record["item_id"]
-                snapshot_time = record["captured_at"]
-                item_snapshots[item_id][snapshot_time]["prices"].append(record["unit_price"])
-                item_snapshots[item_id][snapshot_time]["quantities"].append(record["quantity"])
+                aggregated_trends[item_id].append({
+                    "timestamp": record["captured_at"],
+                    "min_price": record["min_price"],
+                    "max_price": record["max_price"],
+                    "mean_price": float(record["mean_price"]),
+                    "median_price": record["median_price"],
+                    "auction_count": record["auction_count"],
+                    "total_quantity": record["total_quantity"]
+                })
 
-            # Aggregate each snapshot
-            aggregated_trends = {}
-            for item_id, snapshots in item_snapshots.items():
-                trend_data = []
-                for snapshot_time in sorted(snapshots.keys()):
-                    prices = snapshots[snapshot_time]["prices"]
-                    quantities = snapshots[snapshot_time]["quantities"]
-
-                    trend_data.append({
-                        "timestamp": snapshot_time,
-                        "min_price": min(prices),
-                        "max_price": max(prices),
-                        "mean_price": sum(prices) / len(prices),
-                        "auction_count": len(prices),
-                        "total_quantity": sum(quantities)
-                    })
-
-                aggregated_trends[item_id] = trend_data
-
-            total_snapshots = len(snapshots) if snapshots else 0
+            total_snapshots = max(len(v) for v in aggregated_trends.values()) if aggregated_trends else 0
             logger.info(f"Retrieved trends for {len(aggregated_trends)} items across {total_snapshots} snapshots")
-            return aggregated_trends
+            return dict(aggregated_trends)
 
         except Exception as e:
             logger.error(f"Error getting commodity trends: {e}")
