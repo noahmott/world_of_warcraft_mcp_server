@@ -24,7 +24,6 @@ from fastmcp.server.dependencies import get_http_headers
 
 # Local imports - Services
 from .services.auction_aggregator import AuctionAggregatorService
-from .services.market_history import MarketHistoryService
 from .services.supabase_client import SupabaseRealTimeClient
 
 # Local imports - Utils
@@ -58,7 +57,6 @@ mcp: FastMCP = FastMCP("WoW Guild Analytics MCP", auth=auth_provider)
 
 # Initialize service instances
 auction_aggregator = AuctionAggregatorService()
-market_history = MarketHistoryService()
 
 # Global instance for Supabase
 supabase_client: Optional[SupabaseRealTimeClient] = None

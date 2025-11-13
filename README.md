@@ -344,7 +344,6 @@ mcp_wowconomics_server/
 │   ├── services/
 │   │   ├── activity_logger.py     # Activity logging service
 │   │   ├── auction_aggregator.py  # Auction data aggregation
-│   │   ├── market_history.py      # Market history tracking
 │   │   ├── supabase_client.py     # Supabase integration
 │   │   └── supabase_streaming.py  # Real-time streaming
 │   ├── core/
