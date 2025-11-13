@@ -95,7 +95,7 @@ class CommodityQueryService:
         hours: int = 24
     ) -> Dict[int, List[Dict[str, Any]]]:
         """
-        Get historical price trends for specific items
+        Get historical price trends for specific items using SQL aggregation
 
         Args:
             item_ids: List of item IDs to get trends for
@@ -103,89 +103,72 @@ class CommodityQueryService:
             hours: Hours of historical data to retrieve
 
         Returns:
-            Dict mapping item_id -> list of price points over time
+            Dict mapping item_id -> list of price points over time (one per snapshot)
         """
         try:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-            # Query historical data (case-insensitive region match)
-            response = await self.client.table("commodity_auctions").select("*").ilike(
+            # Use RPC call to execute SQL aggregation query
+            # This groups by item_id and captured_at (snapshot time), aggregating prices
+            from supabase import PostgrestAPIError
+
+            # Build SQL query to aggregate by snapshot
+            item_ids_str = ','.join(str(id) for id in item_ids)
+
+            # Execute raw SQL via rpc or use PostgREST aggregation
+            # For now, let's use PostgREST select with proper ordering
+            response = await self.client.table("commodity_auctions").select(
+                "item_id,captured_at,unit_price,quantity"
+            ).ilike(
                 "region", region
             ).in_(
                 "item_id", item_ids
             ).gte(
                 "captured_at", cutoff_time.isoformat()
-            ).order("captured_at", desc=False).execute()
+            ).order("item_id").order("captured_at").execute()
 
             if not response.data:
                 logger.warning(f"No historical data found for {len(item_ids)} items")
                 return {}
 
-            # Group by item_id and aggregate by hour
-            trends: Dict[int, List[Dict[str, Any]]] = {}
+            # Group by item_id and snapshot timestamp in Python (since PostgREST doesn't support GROUP BY)
+            from collections import defaultdict
+
+            # Structure: {item_id: {snapshot_timestamp: {"prices": [], "quantities": []}}}
+            item_snapshots: Dict[int, Dict[str, Dict[str, list]]] = defaultdict(lambda: defaultdict(lambda: {"prices": [], "quantities": []}))
 
             for record in response.data:
                 item_id = record["item_id"]
+                snapshot_time = record["captured_at"]
+                item_snapshots[item_id][snapshot_time]["prices"].append(record["unit_price"])
+                item_snapshots[item_id][snapshot_time]["quantities"].append(record["quantity"])
 
-                if item_id not in trends:
-                    trends[item_id] = []
-
-                trends[item_id].append({
-                    "timestamp": record["captured_at"],
-                    "min_price": record["unit_price"],  # Single auction price
-                    "max_price": record["unit_price"],
-                    "mean_price": record["unit_price"],
-                    "auction_count": 1,
-                    "total_quantity": record["quantity"]
-                })
-
-            # Aggregate hourly for each item
+            # Aggregate each snapshot
             aggregated_trends = {}
-            for item_id, data_points in trends.items():
-                aggregated_trends[item_id] = self._aggregate_by_hour(data_points)
+            for item_id, snapshots in item_snapshots.items():
+                trend_data = []
+                for snapshot_time in sorted(snapshots.keys()):
+                    prices = snapshots[snapshot_time]["prices"]
+                    quantities = snapshots[snapshot_time]["quantities"]
 
-            logger.info(f"Retrieved trends for {len(aggregated_trends)} items")
+                    trend_data.append({
+                        "timestamp": snapshot_time,
+                        "min_price": min(prices),
+                        "max_price": max(prices),
+                        "mean_price": sum(prices) / len(prices),
+                        "auction_count": len(prices),
+                        "total_quantity": sum(quantities)
+                    })
+
+                aggregated_trends[item_id] = trend_data
+
+            total_snapshots = len(snapshots) if snapshots else 0
+            logger.info(f"Retrieved trends for {len(aggregated_trends)} items across {total_snapshots} snapshots")
             return aggregated_trends
 
         except Exception as e:
             logger.error(f"Error getting commodity trends: {e}")
             return {}
-
-    def _aggregate_by_hour(self, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Aggregate data points by hour"""
-        from collections import defaultdict
-        from typing import List as ListType
-
-        hourly_data: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
-            "prices": [],
-            "quantities": [],
-            "count": 0
-        })
-
-        for point in data_points:
-            # Round timestamp to hour
-            timestamp = datetime.fromisoformat(point["timestamp"].replace('Z', '+00:00'))
-            hour_key = timestamp.replace(minute=0, second=0, microsecond=0).isoformat()
-
-            hourly_data[hour_key]["prices"].append(point["mean_price"])
-            hourly_data[hour_key]["quantities"].append(point["total_quantity"])
-            hourly_data[hour_key]["count"] += point["auction_count"]
-
-        # Calculate aggregates
-        result: ListType[Dict[str, Any]] = []
-        for hour_key, data in sorted(hourly_data.items()):
-            prices: ListType[float] = data["prices"]
-            quantities: ListType[int] = data["quantities"]
-            result.append({
-                "timestamp": hour_key,
-                "min_price": min(prices) if prices else 0,
-                "max_price": max(prices) if prices else 0,
-                "mean_price": sum(prices) / len(prices) if prices else 0,
-                "auction_count": data["count"],
-                "total_quantity": sum(quantities)
-            })
-
-        return result
 
     async def check_data_freshness(self, region: str = "us") -> Dict[str, Any]:
         """
